@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Fact Checker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 280px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      background: #fff;
+      color: #1a1a2e;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px;
+      background: linear-gradient(135deg, #5c6bc0, #3949ab);
+      color: white;
+    }
+
+    .header h1 { font-size: 15px; font-weight: 600; }
+    .header p  { font-size: 11px; opacity: 0.8; margin-top: 2px; }
+
+    .body { padding: 16px; }
+
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 14px;
+      background: #e8f5e9;
+      color: #2e7d32;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #4caf50;
+      flex-shrink: 0;
+    }
+
+    .steps {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.6;
+    }
+
+    .steps ol { padding-left: 18px; }
+    .steps li { margin-bottom: 6px; }
+    .steps strong { color: #222; }
+
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid #f0f0f0;
+      font-size: 11px;
+      color: #999;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="white" stroke-width="1.8"/>
+      <path d="M9 12l2 2 4-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>AI Fact Checker</h1>
+      <p>Powered by Claude AI</p>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="status">
+      <div class="status-dot"></div>
+      <span>Ready to fact-check!</span>
+    </div>
+
+    <div class="steps">
+      <ol>
+        <li><strong>Select</strong> any text on a webpage</li>
+        <li><strong>Right-click</strong> the selection</li>
+        <li>Choose <strong>"Fact Check with AI"</strong></li>
+        <li>See the verdict in seconds</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="footer">Uses Claude AI · Free for all users</div>
+</body>
+</html>
