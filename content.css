@@ -229,6 +229,27 @@
   margin-bottom: 4px;
 }
 
+/* Question answer items */
+.afc-answers-title {
+  color: #2e7d32 !important;
+  border-color: #a5d6a7 !important;
+}
+
+.afc-answers-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.afc-answer-item {
+  background: #e8f5e9;
+  border: 1.5px solid #a5d6a7;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 6px !important;
+  color: #1b5e20;
+  font-weight: 500;
+}
+
 /* Scrollbar */
 .afc-body::-webkit-scrollbar {
   width: 4px;

@@ -68,12 +68,35 @@ export default {
 };
 
 function buildPrompt(text) {
-  return `You are a precise and impartial fact-checker. Analyze the following claim or statement and return a structured fact-check report.
+  return `You are a knowledgeable AI assistant that can both answer questions and fact-check statements. The user has selected the following text:
 
-TEXT TO FACT-CHECK:
+SELECTED TEXT:
 "${text}"
 
-Respond in this exact format:
+First, determine what type of content this is:
+
+- TYPE A — QUESTION WITH ANSWER OPTIONS: The text contains a question followed by a list of possible answers (multiple choice, checkbox, true/false, quiz, exam, etc.). This includes questions in ANY language.
+- TYPE B — FACTUAL CLAIM OR STATEMENT: The text is a statement, claim, or assertion that can be verified.
+
+---
+
+If TYPE A (question with options), respond in this exact format:
+
+TYPE: QUESTION
+
+CORRECT ANSWER(S):
+[List each correct option exactly as written in the text. If multiple answers are correct, list each on its own line starting with "- ".]
+
+CONFIDENCE: [HIGH / MEDIUM / LOW]
+
+EXPLANATION:
+[2–4 sentences explaining WHY these are the correct answers, with the key reasoning or facts behind each one. Respond in the same language as the question.]
+
+---
+
+If TYPE B (factual claim), respond in this exact format:
+
+TYPE: FACT-CHECK
 
 VERDICT: [TRUE / FALSE / MISLEADING / UNVERIFIABLE / PARTIALLY TRUE]
 
@@ -88,7 +111,9 @@ KEY FACTS:
 SOURCES TO CHECK:
 [Suggest 2–3 types of authoritative sources the user could consult to verify this]
 
-Keep your response factual, concise, and neutral. Do not editorialize.`;
+---
+
+Be accurate, concise, and respond in the same language as the selected text.`;
 }
 
 function json(data, status = 200) {

@@ -75,9 +75,49 @@ function renderResult(text) {
   let html = "";
   let inList = false;
 
+  // Detect response type from first non-empty line
+  const typeLine = lines.find(l => l.startsWith("TYPE:"));
+  const isQuestion = typeLine && typeLine.includes("QUESTION");
+
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
 
+    // Skip the TYPE: line — it's used for routing, not display
+    if (line.startsWith("TYPE:")) continue;
+
+    // ── Question mode ──
+    if (isQuestion) {
+      if (line.startsWith("CORRECT ANSWER(S):")) {
+        if (inList) { html += "</ul>"; inList = false; }
+        html += `<div class="afc-section-title afc-answers-title">✓ Correct Answer(s)</div>`;
+        continue;
+      }
+
+      if (line.startsWith("CONFIDENCE:")) {
+        if (inList) { html += "</ul>"; inList = false; }
+        const value = line.replace("CONFIDENCE:", "").trim();
+        html += `<div class="afc-confidence"><strong>Confidence:</strong> <span class="afc-conf-${value.toLowerCase()}">${escapeHtml(value)}</span></div>`;
+        continue;
+      }
+
+      if (line.startsWith("EXPLANATION:")) {
+        if (inList) { html += "</ul>"; inList = false; }
+        html += `<div class="afc-section-title">Explanation</div>`;
+        continue;
+      }
+
+      if (line.startsWith("- ") || line.startsWith("• ")) {
+        if (!inList) { html += "<ul class='afc-list afc-answers-list'>"; inList = true; }
+        html += `<li class="afc-answer-item">${escapeHtml(line.slice(2))}</li>`;
+        continue;
+      }
+
+      if (inList) { html += "</ul>"; inList = false; }
+      if (line.trim()) html += `<p>${escapeHtml(line)}</p>`;
+      continue;
+    }
+
+    // ── Fact-check mode ──
     if (line.startsWith("VERDICT:")) {
       if (inList) { html += "</ul>"; inList = false; }
       const value = line.replace("VERDICT:", "").trim();
@@ -107,9 +147,7 @@ function renderResult(text) {
     }
 
     if (inList) { html += "</ul>"; inList = false; }
-    if (line.trim()) {
-      html += `<p>${escapeHtml(line)}</p>`;
-    }
+    if (line.trim()) html += `<p>${escapeHtml(line)}</p>`;
   }
 
   if (inList) html += "</ul>";
