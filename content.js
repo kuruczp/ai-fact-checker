@@ -40,7 +40,7 @@ function showPanel(state, text) {
     <div class="afc-body">
       <div class="afc-loading">
         <div class="afc-spinner"></div>
-        <span>Analyzing with Claude AI…</span>
+        <span>Analyzing with AI…</span>
       </div>
     </div>
   `;
