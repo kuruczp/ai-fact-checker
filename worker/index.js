@@ -76,7 +76,7 @@ function detectProvider(key) {
 async function callProvider(provider, apiKey, prompt) {
   switch (provider) {
     case "anthropic":  return callAnthropic(apiKey, prompt);
-    case "openrouter": return callOpenAICompat("https://openrouter.ai/api/v1/chat/completions", apiKey, prompt, "meta-llama/llama-3.3-70b-instruct:free");
+    case "openrouter": return callOpenAICompat("https://openrouter.ai/api/v1/chat/completions", apiKey, prompt, "openrouter/free");
     case "openai":     return callOpenAICompat("https://api.openai.com/v1/chat/completions",    apiKey, prompt, "gpt-4o-mini");
   }
 }
@@ -125,7 +125,9 @@ async function callOpenAICompat(endpoint, apiKey, prompt, model) {
   }
 
   const data = await res.json();
-  return data.choices?.[0]?.message?.content ?? "No response received.";
+  const msg = data.choices?.[0]?.message;
+  // Some reasoning models return null content with text in the reasoning field
+  return msg?.content || msg?.reasoning || "No response received.";
 }
 
 // ── Prompt ────────────────────────────────────────────────────────────────────
