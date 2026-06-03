@@ -1,10 +1,11 @@
 // Cloudflare Worker — AI Fact Checker Proxy
-// The API key is stored as a Cloudflare secret (never in source code).
-// Set it with: npx wrangler secret put ANTHROPIC_API_KEY
+// Set your API key as a secret: npx wrangler secret put AI_API_KEY
+//
+// Supported key formats (auto-detected):
+//   sk-ant-...   → Anthropic Claude (claude-sonnet-4-6)
+//   sk-or-...    → OpenRouter       (free models available)
+//   sk-...       → OpenAI           (gpt-4o-mini)
 
-const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
-
-// Basic abuse guard: shared token embedded in the extension.
 const EXTENSION_TOKEN = "fc-ext-v1-a9k2m7";
 
 const CORS_HEADERS = {
@@ -28,6 +29,16 @@ export default {
       return json({ error: "Unauthorized" }, 401);
     }
 
+    const apiKey = env.AI_API_KEY;
+    if (!apiKey) {
+      return json({ error: "No API key configured on the server." }, 500);
+    }
+
+    const provider = detectProvider(apiKey);
+    if (!provider) {
+      return json({ error: "Unrecognised API key format." }, 500);
+    }
+
     let body;
     try {
       body = await request.json();
@@ -39,33 +50,85 @@ export default {
       return json({ error: "Missing or empty text field" }, 400);
     }
 
-    const textToCheck = body.text.trim().slice(0, 3000);
+    const text = body.text.trim().slice(0, 3000);
+    const prompt = buildPrompt(text);
 
-    const anthropicResponse = await fetch(ANTHROPIC_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": env.ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1024,
-        messages: [{ role: "user", content: buildPrompt(textToCheck) }],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      const err = await anthropicResponse.json().catch(() => ({}));
-      return json({ error: err?.error?.message || `Upstream error ${anthropicResponse.status}` }, 502);
+    try {
+      const result = await callProvider(provider, apiKey, prompt);
+      return json({ result, provider });
+    } catch (err) {
+      return json({ error: err.message || "Upstream error" }, 502);
     }
-
-    const data = await anthropicResponse.json();
-    const result = data.content?.[0]?.text ?? "No response received.";
-
-    return json({ result }, 200);
   },
 };
+
+// ── Provider detection ────────────────────────────────────────────────────────
+
+function detectProvider(key) {
+  if (key.startsWith("sk-ant-")) return "anthropic";
+  if (key.startsWith("sk-or-"))  return "openrouter";
+  if (key.startsWith("sk-"))     return "openai";
+  return null;
+}
+
+// ── Provider calls ────────────────────────────────────────────────────────────
+
+async function callProvider(provider, apiKey, prompt) {
+  switch (provider) {
+    case "anthropic":  return callAnthropic(apiKey, prompt);
+    case "openrouter": return callOpenAICompat("https://openrouter.ai/api/v1/chat/completions", apiKey, prompt, "meta-llama/llama-3.3-70b-instruct:free");
+    case "openai":     return callOpenAICompat("https://api.openai.com/v1/chat/completions",    apiKey, prompt, "gpt-4o-mini");
+  }
+}
+
+async function callAnthropic(apiKey, prompt) {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `Anthropic error ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.content?.[0]?.text ?? "No response received.";
+}
+
+async function callOpenAICompat(endpoint, apiKey, prompt, model) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 1024,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || `API error ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "No response received.";
+}
+
+// ── Prompt ────────────────────────────────────────────────────────────────────
 
 function buildPrompt(text) {
   return `You are a knowledgeable AI assistant that can both answer questions and fact-check statements. The user has selected the following text:
@@ -115,6 +178,8 @@ SOURCES TO CHECK:
 
 Be accurate, concise, and respond in the same language as the selected text.`;
 }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
