@@ -1,5 +1,15 @@
 let panel = null;
 
+// Track the last selection so autofill knows where to search for inputs
+let lastSelectionRoot = null;
+document.addEventListener("selectionchange", () => {
+  const sel = window.getSelection();
+  if (!sel || !sel.toString().trim() || sel.rangeCount === 0) return;
+  let el = sel.getRangeAt(0).commonAncestorContainer;
+  if (el.nodeType === Node.TEXT_NODE) el = el.parentElement;
+  lastSelectionRoot = el;
+});
+
 chrome.runtime.onMessage.addListener((msg) => {
   switch (msg.type) {
     case "FACT_CHECK_START":
@@ -10,6 +20,9 @@ chrome.runtime.onMessage.addListener((msg) => {
       break;
     case "FACT_CHECK_ERROR":
       updatePanel("error", msg.error);
+      break;
+    case "QUIZ_AUTOFILL_RESULT":
+      autofill(msg.result);
       break;
   }
 });
@@ -180,4 +193,94 @@ function escapeHtml(str) {
 
 function truncate(str, max) {
   return str.length > max ? str.slice(0, max) + "…" : str;
+}
+
+// ── Quiz autofill ─────────────────────────────────────────────────────────────
+
+function autofill(resultText) {
+  const answers = parseCorrectAnswers(resultText);
+  if (!answers.length) return;
+
+  const root = findSearchRoot();
+  const inputs = root.querySelectorAll('input[type="checkbox"], input[type="radio"]');
+
+  for (const input of inputs) {
+    const label = getInputLabel(input);
+    if (!label) continue;
+    if (answers.some(a => textsMatch(a, label))) {
+      if (!input.checked) {
+        input.click();
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+    }
+  }
+}
+
+function parseCorrectAnswers(text) {
+  const answers = [];
+  let inAnswers = false;
+
+  for (const rawLine of text.split("\n")) {
+    const line = rawLine.trim();
+    if (/^CORRECT ANSWER/i.test(line)) { inAnswers = true; continue; }
+    if (inAnswers) {
+      if (/^(CONFIDENCE|EXPLANATION|TYPE|VERDICT|SUMMARY):/i.test(line)) break;
+      const match = line.match(/^[-•]\s*(.+)/);
+      if (match) answers.push(match[1].trim());
+      else if (line) answers.push(line);
+    }
+  }
+
+  return answers.filter(Boolean);
+}
+
+function findSearchRoot() {
+  if (!lastSelectionRoot) return document.body;
+
+  // Walk up until we find an ancestor that contains inputs, max 10 levels
+  let el = lastSelectionRoot;
+  for (let i = 0; i < 10; i++) {
+    if (el.querySelectorAll('input[type="checkbox"], input[type="radio"]').length > 0) return el;
+    if (!el.parentElement || el === document.body) break;
+    el = el.parentElement;
+  }
+
+  return document.body;
+}
+
+function getInputLabel(input) {
+  // 1. label[for] association
+  if (input.id) {
+    const lbl = document.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+    if (lbl) return lbl.textContent.trim();
+  }
+  // 2. Wrapping <label>
+  const wrap = input.closest("label");
+  if (wrap) return wrap.textContent.trim();
+  // 3. aria-label
+  if (input.getAttribute("aria-label")) return input.getAttribute("aria-label").trim();
+  // 4. aria-labelledby
+  const lblBy = input.getAttribute("aria-labelledby");
+  if (lblBy) {
+    const el = document.getElementById(lblBy);
+    if (el) return el.textContent.trim();
+  }
+  // 5. Next sibling text
+  let sib = input.nextSibling;
+  while (sib) {
+    const t = sib.textContent?.trim();
+    if (t) return t;
+    sib = sib.nextSibling;
+  }
+  return null;
+}
+
+function textsMatch(answer, label) {
+  const a = normalizeText(answer);
+  const l = normalizeText(label);
+  return a === l || l.includes(a) || a.includes(l);
+}
+
+function normalizeText(str) {
+  return str.toLowerCase().replace(/\s+/g, " ").trim();
 }
