@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Fact Checker — Browser Extension</title>
-  <meta name="description" content="Select any text on any webpage. Get instant AI-powered fact-checks or quiz answers — completely free, no account needed. Works on Chrome, Firefox, and Edge." />
+  <meta name="description" content="Select any text on any webpage. Fact-check claims, get quiz answers, or silently auto-fill quizzes with a keyboard shortcut. Free, no account needed." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,7 +12,6 @@
       --blue: #5c6bc0;
       --blue-dark: #3949ab;
       --green: #2e7d32;
-      --green-bg: #e8f5e9;
       --text: #1a1a2e;
       --muted: #666;
       --border: #e5e7eb;
@@ -64,7 +63,7 @@
     .hero p {
       font-size: 18px;
       opacity: 0.9;
-      max-width: 580px;
+      max-width: 600px;
       margin: 0 auto 40px;
     }
 
@@ -90,24 +89,22 @@
     }
 
     .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.2); text-decoration: none; }
-    .btn-white  { background: white; color: var(--blue-dark); }
-    .btn-ghost  { background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.5); }
+    .btn-white { background: white; color: var(--blue-dark); }
+    .btn-ghost { background: rgba(255,255,255,0.15); color: white; border: 1.5px solid rgba(255,255,255,0.5); }
 
     /* ── Demo ── */
-    .demo-wrap {
-      max-width: 440px;
-      margin: 52px auto 0;
-    }
+    .demo-wrap { max-width: 440px; margin: 52px auto 0; }
 
     .demo-toggle {
       display: flex;
       gap: 6px;
       margin-bottom: 12px;
       justify-content: center;
+      flex-wrap: wrap;
     }
 
     .demo-toggle button {
-      padding: 5px 16px;
+      padding: 5px 14px;
       border-radius: 20px;
       border: 1.5px solid rgba(255,255,255,0.4);
       background: rgba(255,255,255,0.1);
@@ -158,18 +155,9 @@
     .demo-screen { display: none; }
     .demo-screen.active { display: block; }
 
-    .badge {
-      display: inline-block;
-      padding: 3px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-
+    .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
     .badge-partial { background: #fff8e1; color: #f57f17; border: 1.5px solid #ffe082; }
-    .badge-conf    { background: #f3f4f6; color: #555; border: 1.5px solid #d1d5db; font-size: 11px; margin-left: 6px; }
+    .badge-conf { background: #f3f4f6; color: #555; border: 1.5px solid #d1d5db; font-size: 11px; margin-left: 6px; }
 
     .demo-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #5c6bc0; margin: 10px 0 5px; padding-bottom: 3px; border-bottom: 1px solid #e8e8f8; }
     .demo-section.green { color: #2e7d32; border-color: #a5d6a7; }
@@ -179,28 +167,71 @@
     .demo-list li { margin-bottom: 3px; }
 
     .demo-answer-list { list-style: none; padding: 0; }
-    .demo-answer-item {
-      background: #e8f5e9;
-      border: 1.5px solid #a5d6a7;
-      border-radius: 6px;
+    .demo-answer-item { background: #e8f5e9; border: 1.5px solid #a5d6a7; border-radius: 6px; padding: 6px 10px; margin-bottom: 5px; color: #1b5e20; font-size: 12px; font-weight: 500; }
+
+    /* Auto-fill demo form */
+    .demo-form { display: flex; flex-direction: column; gap: 5px; margin: 8px 0; }
+    .demo-check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       padding: 6px 10px;
-      margin-bottom: 5px;
-      color: #1b5e20;
+      border-radius: 6px;
       font-size: 12px;
-      font-weight: 500;
+      border: 1.5px solid #e5e7eb;
+      background: #fafafa;
+      color: #444;
+    }
+    .demo-check-row.filled {
+      background: #e8f5e9;
+      border-color: #a5d6a7;
+      color: #1b5e20;
+      font-weight: 600;
+    }
+    .demo-cb {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+      border: 1.5px solid #ccc;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      background: white;
+    }
+    .demo-check-row.filled .demo-cb {
+      background: #2e7d32;
+      border-color: #2e7d32;
+      color: white;
+    }
+    .demo-shortcut-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: #2e7d32;
+      font-weight: 600;
+      margin-top: 8px;
+    }
+    .kbd {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #333;
+      box-shadow: 0 1px 0 #ccc;
     }
 
     /* ── Sections ── */
     .section { padding: 64px 24px; }
     .section-inner { max-width: 960px; margin: 0 auto; }
-
     .section-title { font-size: 28px; font-weight: 700; text-align: center; margin-bottom: 8px; }
-    .section-sub   { text-align: center; color: var(--muted); margin-bottom: 48px; font-size: 16px; }
+    .section-sub { text-align: center; color: var(--muted); margin-bottom: 48px; font-size: 16px; }
 
     /* ── Mode cards ── */
     .modes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 24px;
       margin-bottom: 48px;
     }
@@ -215,77 +246,40 @@
 
     .mode-card:hover { border-color: var(--blue); box-shadow: 0 4px 20px rgba(92,107,192,0.12); }
 
-    .mode-icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px;
-      margin-bottom: 16px;
+    .mode-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px; }
+
+    .mode-how {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .mode-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-    .mode-card p  { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+    .mode-card p { font-size: 14px; color: var(--muted); margin-bottom: 14px; }
 
     .mode-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .mode-tag {
-      padding: 3px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      background: #f3f4f6;
-      color: #555;
-    }
+    .mode-tag { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: #f3f4f6; color: #555; }
 
     /* ── Features ── */
-    .features {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 20px;
-    }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
 
-    .feature-card {
-      background: white;
-      border-radius: 12px;
-      padding: 22px;
-      border: 1px solid var(--border);
-    }
-
-    .feature-icon {
-      width: 42px; height: 42px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      margin-bottom: 12px;
-      font-size: 20px;
-    }
-
+    .feature-card { background: white; border-radius: 12px; padding: 22px; border: 1px solid var(--border); }
+    .feature-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; font-size: 20px; }
     .feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
-    .feature-card p  { font-size: 13px; color: var(--muted); }
+    .feature-card p { font-size: 13px; color: var(--muted); }
 
     /* ── Verdicts ── */
-    .verdicts-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 12px;
-    }
-
-    .verdict-pill {
-      padding: 6px 18px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-    }
+    .verdicts-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 12px; }
+    .verdict-pill { padding: 6px 18px; border-radius: 20px; font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 
     /* ── Install ── */
-    .install-tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
-    }
+    .install-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
 
     .tab-btn {
       padding: 8px 18px;
@@ -300,84 +294,43 @@
     }
 
     .tab-btn.active { background: var(--blue); border-color: var(--blue); color: white; }
-
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
-    .steps-card {
-      background: white;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      overflow: hidden;
-    }
+    .steps-card { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
 
-    .step {
+    .step { display: flex; gap: 16px; padding: 18px 20px; border-bottom: 1px solid #f5f5f5; align-items: flex-start; }
+    .step:last-child { border-bottom: none; }
+    .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--blue); color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .step-body p { font-size: 13px; color: var(--muted); }
+    .step-body code { background: #f3f4f6; border-radius: 4px; padding: 1px 6px; font-size: 12px; font-family: monospace; color: #333; }
+
+    .info-box {
+      margin-top: 16px;
+      background: #f0f4ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: #3730a3;
       display: flex;
-      gap: 16px;
-      padding: 18px 20px;
-      border-bottom: 1px solid #f5f5f5;
+      gap: 10px;
       align-items: flex-start;
     }
 
-    .step:last-child { border-bottom: none; }
-
-    .step-num {
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: var(--blue);
-      color: white;
-      font-size: 13px;
-      font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .step-body h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
-    .step-body p  { font-size: 13px; color: var(--muted); }
-    .step-body code {
-      background: #f3f4f6;
-      border-radius: 4px;
-      padding: 1px 6px;
-      font-size: 12px;
-      font-family: monospace;
-      color: #333;
-    }
-
     .download-btn-wrap { text-align: center; margin-top: 16px; }
-
-    .btn-primary {
-      background: var(--blue);
-      color: white;
-      padding: 12px 28px;
-      border-radius: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      display: inline-block;
-    }
+    .btn-primary { background: var(--blue); color: white; padding: 12px 28px; border-radius: 10px; font-size: 15px; font-weight: 600; display: inline-block; }
 
     /* ── Privacy ── */
-    .privacy-section { background: white; }
-
-    .privacy-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-    }
-
+    .privacy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
     .privacy-item { display: flex; gap: 12px; align-items: flex-start; }
     .privacy-icon { font-size: 24px; flex-shrink: 0; }
     .privacy-item h4 { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
-    .privacy-item p  { font-size: 13px; color: var(--muted); }
+    .privacy-item p { font-size: 13px; color: var(--muted); }
 
     /* ── Footer ── */
-    footer {
-      background: #1a1a2e;
-      color: rgba(255,255,255,0.6);
-      text-align: center;
-      padding: 32px 24px;
-      font-size: 13px;
-    }
-
+    footer { background: #1a1a2e; color: rgba(255,255,255,0.6); text-align: center; padding: 32px 24px; font-size: 13px; }
     footer strong { color: rgba(255,255,255,0.9); }
   </style>
 </head>
@@ -390,7 +343,7 @@
     Free Browser Extension
   </div>
   <h1>Your AI assistant<br/><span>for any text you read.</span></h1>
-  <p>Select any text on any webpage. Right-click. Instantly fact-check claims or get answers to quiz questions — in any language. Completely free.</p>
+  <p>Fact-check claims, get quiz answers, or press <strong>Alt+Shift+F</strong> to silently auto-fill quiz forms — in any language. Completely free.</p>
 
   <div class="hero-buttons">
     <a href="#install" class="btn btn-white">
@@ -400,11 +353,11 @@
     <a href="#modes" class="btn btn-ghost">See what it does</a>
   </div>
 
-  <!-- Demo preview with two tabs -->
   <div class="demo-wrap">
     <div class="demo-toggle">
       <button class="active" onclick="switchDemo('factcheck', this)">📋 Fact-check</button>
       <button onclick="switchDemo('quiz', this)">🎓 Quiz answer</button>
+      <button onclick="switchDemo('autofill', this)">⌨ Auto-fill</button>
     </div>
     <div class="demo-panel">
       <div class="demo-header">
@@ -416,9 +369,7 @@
 
       <!-- Fact-check demo -->
       <div id="demo-factcheck" class="demo-screen active">
-        <div class="demo-claim">
-          <strong>Checking:</strong> "The Great Wall of China is visible from space with the naked eye."
-        </div>
+        <div class="demo-claim"><strong>Checking:</strong> "The Great Wall of China is visible from space with the naked eye."</div>
         <div class="demo-body">
           <div style="margin-bottom:8px">
             <span class="badge badge-partial">Partially True</span>
@@ -435,11 +386,9 @@
         </div>
       </div>
 
-      <!-- Quiz demo -->
+      <!-- Quiz popup demo -->
       <div id="demo-quiz" class="demo-screen">
-        <div class="demo-claim">
-          <strong>Checking:</strong> "Mi vagy melyek az aerob és az anaerob állóképesség közös jellemzői? — Több jó válasz is lehetséges"
-        </div>
+        <div class="demo-claim"><strong>Checking:</strong> "Mi vagy melyek az aerob és az anaerob állóképesség közös jellemzői? — Több jó válasz is lehetséges"</div>
         <div class="demo-body">
           <div class="demo-section green">✓ Correct Answer(s)</div>
           <ul class="demo-answer-list">
@@ -448,10 +397,24 @@
           </ul>
           <span class="badge badge-conf" style="margin-bottom:10px;display:inline-block">Confidence: HIGH</span>
           <div class="demo-section">Explanation</div>
-          <p class="demo-text">Both aerobic and anaerobic endurance training increase the body's lactate tolerance and mitochondrial density in muscle cells. VO₂max improvement is primarily aerobic, while lactate clearance efficiency is more specific to anaerobic training.</p>
+          <p class="demo-text">Both aerobic and anaerobic endurance training increase the body's lactate tolerance and mitochondrial density in muscle cells.</p>
         </div>
       </div>
 
+      <!-- Auto-fill demo -->
+      <div id="demo-autofill" class="demo-screen">
+        <div class="demo-claim"><strong>Mode:</strong> Select question → press Alt+Shift+F → done, no popup</div>
+        <div class="demo-body">
+          <div class="demo-section" style="margin-top:0;color:#555;border-color:#e5e7eb">Quiz form on the page</div>
+          <div class="demo-form" style="margin-top:10px">
+            <div class="demo-check-row filled"><span class="demo-cb">✓</span><span>Nő a szervezet tejsavszint toleranciája</span></div>
+            <div class="demo-check-row"><span class="demo-cb"></span><span>Nő a VO2max értéke</span></div>
+            <div class="demo-check-row filled"><span class="demo-cb">✓</span><span>A mitokondriumok száma növekszik az izomsejtekben</span></div>
+            <div class="demo-check-row"><span class="demo-cb"></span><span>Nő a tejsavszintet csökkentő folyamatok hatékonysága</span></div>
+          </div>
+          <div class="demo-shortcut-hint">✓ 2 answers auto-filled &nbsp;·&nbsp; <span class="kbd">Alt</span>+<span class="kbd">Shift</span>+<span class="kbd">F</span></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -459,30 +422,43 @@
 <!-- ════ MODES ════ -->
 <section class="section" id="modes">
   <div class="section-inner">
-    <h2 class="section-title">Two modes, one right-click</h2>
+    <h2 class="section-title">Three ways to use it</h2>
     <p class="section-sub">The extension automatically detects what you selected and responds accordingly.</p>
 
     <div class="modes">
       <div class="mode-card">
         <div class="mode-icon" style="background:#fff3e0">📋</div>
+        <div class="mode-how">Right-click → Fact Check with AI</div>
         <h3>Fact-check mode</h3>
-        <p>Select a statement, headline, or claim. The extension returns a verdict, confidence level, key facts, and sources to verify — instantly.</p>
+        <p>Select a statement, headline, or claim. Get a verdict, confidence level, key facts, and sources to verify — instantly.</p>
         <div class="mode-tags">
           <span class="mode-tag">News articles</span>
           <span class="mode-tag">Social media</span>
           <span class="mode-tag">Wikipedia</span>
           <span class="mode-tag">Emails</span>
-          <span class="mode-tag">Any claim</span>
         </div>
       </div>
       <div class="mode-card">
         <div class="mode-icon" style="background:#e8f5e9">🎓</div>
-        <h3>Quiz & question mode</h3>
+        <div class="mode-how">Right-click → Fact Check with AI</div>
+        <h3>Quiz answer mode</h3>
         <p>Select a multiple-choice question with its options. The extension identifies the correct answer(s) and explains why — in any language.</p>
         <div class="mode-tags">
           <span class="mode-tag">Exam questions</span>
           <span class="mode-tag">Online quizzes</span>
           <span class="mode-tag">Study materials</span>
+          <span class="mode-tag">Any language</span>
+        </div>
+      </div>
+      <div class="mode-card">
+        <div class="mode-icon" style="background:#ede9fe">⌨</div>
+        <div class="mode-how"><span class="kbd" style="font-size:11px">Alt</span>+<span class="kbd" style="font-size:11px">Shift</span>+<span class="kbd" style="font-size:11px">F</span></div>
+        <h3>Silent auto-fill mode</h3>
+        <p>Select a question including all answer options, press the shortcut, and the correct checkboxes or radio buttons are filled in automatically — no popup, no clicks.</p>
+        <div class="mode-tags">
+          <span class="mode-tag">Checkboxes</span>
+          <span class="mode-tag">Radio buttons</span>
+          <span class="mode-tag">Any form</span>
           <span class="mode-tag">Any language</span>
         </div>
       </div>
@@ -495,17 +471,16 @@
   <div class="section-inner">
     <h2 class="section-title">Why use it?</h2>
     <p class="section-sub">Works anywhere you read — no copy-pasting, no switching apps.</p>
-
     <div class="features">
       <div class="feature-card">
         <div class="feature-icon" style="background:#e8f5e9">⚡</div>
         <h3>Results in seconds</h3>
-        <p>No switching tabs or copy-pasting into search engines. Select, right-click, done.</p>
+        <p>No switching tabs or copy-pasting. Select, right-click or press the shortcut — done.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:#ede9fe">🧠</div>
-        <h3>Powered by AI — free</h3>
-        <p>Runs on OpenRouter's free AI models. No API key, no credit card, no sign-up required.</p>
+        <h3>Powered by Claude AI</h3>
+        <p>Uses Anthropic's Claude — one of the most accurate and capable AI models available.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:#fce4ec">🌐</div>
@@ -513,19 +488,19 @@
         <p>Works with questions and claims in English, Hungarian, German, Spanish — and more.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:#e3f2fd">🔒</div>
-        <h3>No account needed</h3>
-        <p>Install and use right away. No sign-up, no login, no personal data collected.</p>
+        <div class="feature-icon" style="background:#e3f2fd">⌨</div>
+        <h3>Keyboard shortcut</h3>
+        <p>Press <strong>Alt+Shift+F</strong> to silently auto-fill quiz forms. Customisable in your browser's extension settings.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:#fff3e0">🖥</div>
         <h3>All browsers</h3>
-        <p>Chrome, Firefox, Edge, Brave, Opera — any browser that supports WebExtensions.</p>
+        <p>Chrome, Firefox, Edge, Brave, Opera — and can even be loaded from a USB drive on any computer.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:#f3f4f6">💸</div>
         <h3>Completely free</h3>
-        <p>No hidden costs, no subscriptions. Powered by free AI — just install and use forever.</p>
+        <p>No hidden costs, no subscriptions, no account. Just install and use forever.</p>
       </div>
     </div>
   </div>
@@ -557,103 +532,87 @@
       <button class="tab-btn active" onclick="switchTab('chrome', event)">🟡 Chrome / Brave / Opera</button>
       <button class="tab-btn" onclick="switchTab('firefox', event)">🦊 Firefox</button>
       <button class="tab-btn" onclick="switchTab('edge', event)">🔵 Microsoft Edge</button>
+      <button class="tab-btn" onclick="switchTab('usb', event)">💾 USB Drive</button>
     </div>
 
     <!-- Chrome -->
     <div id="tab-chrome" class="tab-content active">
       <div class="steps-card">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-body"><h4>Download the extension</h4><p>Click the button below to download <code>ai-fact-checker.zip</code>.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body"><h4>Unzip the file</h4><p>Extract the zip to a permanent folder on your computer (e.g. your Desktop).</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body"><h4>Open Extensions</h4><p>Go to <code>chrome://extensions</code> and enable <strong>Developer mode</strong> (top-right toggle).</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body"><h4>Load unpacked</h4><p>Click <strong>Load unpacked</strong> and select the unzipped folder. The icon appears in your toolbar.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-body"><h4>Done! Start using it</h4><p>Select any text → right-click → <strong>"Fact Check with AI"</strong>.</p></div>
-        </div>
+        <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Download the extension</h4><p>Click the button below to download <code>ai-fact-checker.zip</code>.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Unzip the file</h4><p>Extract the zip to a permanent folder on your computer (e.g. your Desktop). Don't delete this folder.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Open Extensions</h4><p>Go to <code>chrome://extensions</code> and enable <strong>Developer mode</strong> (top-right toggle).</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Load unpacked</h4><p>Click <strong>Load unpacked</strong> and select the unzipped folder. The icon appears in your toolbar.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-body"><h4>Done!</h4><p>Select any text → right-click → <strong>"Fact Check with AI"</strong>. Or select a quiz question and press <strong>Alt+Shift+F</strong>.</p></div></div>
       </div>
-      <div class="download-btn-wrap">
-        <a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a>
-      </div>
+      <div class="download-btn-wrap"><a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a></div>
     </div>
 
     <!-- Firefox -->
     <div id="tab-firefox" class="tab-content">
       <div class="steps-card">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-body"><h4>Download the extension</h4><p>Click the button below to download <code>ai-fact-checker.zip</code>.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body"><h4>Open Add-ons Manager</h4><p>Go to <code>about:addons</code> or Menu → Add-ons and themes.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body"><h4>Install from file</h4><p>Click the gear icon ⚙ → <strong>Install Add-on From File…</strong> → select the downloaded zip.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body"><h4>Confirm</h4><p>Firefox will ask to confirm — click <strong>Add</strong>.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-body"><h4>Done! Start using it</h4><p>Select any text → right-click → <strong>"Fact Check with AI"</strong>.</p></div>
-        </div>
+        <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Download the extension</h4><p>Click the button below to download <code>ai-fact-checker.zip</code>.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Open Add-ons Manager</h4><p>Go to <code>about:addons</code> or Menu → Add-ons and themes.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Install from file</h4><p>Click the gear icon ⚙ → <strong>Install Add-on From File…</strong> → select the downloaded zip.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Confirm</h4><p>Firefox will ask to confirm — click <strong>Add</strong>. Firefox copies the extension, so you can delete the zip afterwards.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-body"><h4>Done!</h4><p>Select any text → right-click → <strong>"Fact Check with AI"</strong>. Or select a quiz question and press <strong>Alt+Shift+F</strong>.</p></div></div>
       </div>
-      <div class="download-btn-wrap">
-        <a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a>
-      </div>
+      <div class="download-btn-wrap"><a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a></div>
     </div>
 
     <!-- Edge -->
     <div id="tab-edge" class="tab-content">
       <div class="steps-card">
-        <div class="step">
-          <div class="step-num">1</div>
-          <div class="step-body"><h4>Download the extension</h4><p>Click the button below to download <code>ai-fact-checker.zip</code>.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body"><h4>Unzip the file</h4><p>Extract the zip to a permanent folder on your computer.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body"><h4>Open Extensions</h4><p>Go to <code>edge://extensions</code> and enable <strong>Developer mode</strong>.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body"><h4>Load unpacked</h4><p>Click <strong>Load unpacked</strong> and select the unzipped folder.</p></div>
-        </div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-body"><h4>Done! Start using it</h4><p>Select any text → right-click → <strong>"Fact Check with AI"</strong>.</p></div>
-        </div>
+        <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Download the extension</h4><p>Click the button below to download <code>ai-fact-checker.zip</code>.</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Unzip the file</h4><p>Extract the zip to a permanent folder on your computer. Don't delete this folder.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Open Extensions</h4><p>Go to <code>edge://extensions</code> and enable <strong>Developer mode</strong>.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Load unpacked</h4><p>Click <strong>Load unpacked</strong> and select the unzipped folder.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-body"><h4>Done!</h4><p>Select any text → right-click → <strong>"Fact Check with AI"</strong>. Or select a quiz question and press <strong>Alt+Shift+F</strong>.</p></div></div>
       </div>
-      <div class="download-btn-wrap">
-        <a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a>
+      <div class="download-btn-wrap"><a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a></div>
+    </div>
+
+    <!-- USB Drive -->
+    <div id="tab-usb" class="tab-content">
+      <div class="steps-card">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><h4>Download & unzip to your USB drive</h4><p>Download <code>ai-fact-checker.zip</code> and extract it to a folder on your USB drive (e.g. <code>E:\ai-fact-checker\</code>).</p></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><h4>Plug the USB into any computer</h4><p>The extension folder travels with the drive — no internet download needed on each machine.</p></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><h4>Open Extensions & enable Developer mode</h4><p>In Chrome/Edge go to <code>chrome://extensions</code> or <code>edge://extensions</code> and turn on <strong>Developer mode</strong>.</p></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><h4>Load unpacked from the USB</h4><p>Click <strong>Load unpacked</strong> and navigate to the folder on your USB drive.</p></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-body"><h4>Keep the USB plugged in while browsing</h4><p>Chrome links to the folder on the drive — the extension works as long as the USB is connected. Firefox users can install via <code>about:addons</code> and then unplug the drive.</p></div></div>
       </div>
+      <div class="info-box">
+        💡 <span><strong>Tip:</strong> On Firefox, installing from file copies the extension internally — you only need the USB for the initial install, not while browsing.</span>
+      </div>
+      <div class="download-btn-wrap"><a href="ai-fact-checker.zip" class="btn btn-primary" download>⬇ Download ai-fact-checker.zip</a></div>
     </div>
   </div>
 </section>
 
+<!-- ════ SHORTCUT ════ -->
+<section class="section" style="padding-top:48px;padding-bottom:48px;background:#f8f9ff">
+  <div class="section-inner" style="max-width:680px;text-align:center">
+    <h2 class="section-title" style="margin-bottom:12px">Keyboard shortcut</h2>
+    <p style="color:var(--muted);font-size:16px;margin-bottom:24px">The auto-fill shortcut works on any quiz or checkbox form.</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;font-size:22px;font-weight:700;margin-bottom:20px">
+      <span class="kbd" style="font-size:18px;padding:6px 14px">Alt</span>
+      <span style="color:var(--muted)">+</span>
+      <span class="kbd" style="font-size:18px;padding:6px 14px">Shift</span>
+      <span style="color:var(--muted)">+</span>
+      <span class="kbd" style="font-size:18px;padding:6px 14px">F</span>
+    </div>
+    <p style="font-size:14px;color:var(--muted)">
+      You can change this shortcut anytime at
+      <code style="background:#f3f4f6;border-radius:4px;padding:1px 6px;font-size:13px">chrome://extensions/shortcuts</code>
+      (or <code style="background:#f3f4f6;border-radius:4px;padding:1px 6px;font-size:13px">edge://extensions/shortcuts</code>).
+    </p>
+  </div>
+</section>
+
 <!-- ════ PRIVACY ════ -->
-<section class="section privacy-section" style="background:#f8f9ff">
+<section class="section" style="background:white">
   <div class="section-inner">
     <h2 class="section-title">Privacy & Security</h2>
     <p class="section-sub">Here's exactly what happens to your data.</p>
-
     <div class="privacy-grid">
       <div class="privacy-item">
         <span class="privacy-icon">📝</span>
@@ -689,7 +648,7 @@
 
 <!-- ════ FOOTER ════ -->
 <footer>
-  <p><strong>AI Fact Checker</strong> — Powered by <a href="https://openrouter.ai" style="color:#9fa8da">OpenRouter</a></p>
+  <p><strong>AI Fact Checker</strong> — Powered by <a href="https://anthropic.com" style="color:#9fa8da">Anthropic Claude</a></p>
   <p style="margin-top:8px">Free to use · Open source · No account required</p>
 </footer>
 
