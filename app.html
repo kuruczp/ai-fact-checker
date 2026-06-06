@@ -289,10 +289,15 @@
       <p>Web App — no installation needed</p>
     </div>
   </div>
-  <a href="index.html" class="back-link">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Back to home
-  </a>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="app-user" style="font-size:12px;opacity:.8"></span>
+    <a href="dashboard.html" id="app-dash-link" class="back-link" style="display:none">⚙ Dashboard</a>
+    <a href="dashboard.html" id="app-login-link" class="back-link">Log in →</a>
+    <a href="index.html" class="back-link">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 5l-7 7 7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Home
+    </a>
+  </div>
 </header>
 
 <main>
@@ -349,6 +354,20 @@
   const PROXY = 'https://fact-checker-proxy.kuruczpeter.workers.dev';
   const TOKEN = 'fc-ext-v1-a9k2m7';
 
+  // Auth: show login state if token in localStorage
+  (function initAuth() {
+    const t = localStorage.getItem('afc_token');
+    if (!t) return;
+    fetch(PROXY + '/auth/me', {
+      headers: { 'Content-Type': 'application/json', 'X-Extension-Token': TOKEN, 'X-Session-Token': t }
+    }).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) { localStorage.removeItem('afc_token'); return; }
+      document.getElementById('app-user').textContent = d.user.email;
+      document.getElementById('app-login-link').style.display = 'none';
+      document.getElementById('app-dash-link').style.display = '';
+    }).catch(() => {});
+  })();
+
   function updateCount() {
     const len = document.getElementById('input').value.length;
     document.getElementById('char-count').textContent = Math.min(len, 3000);
@@ -376,10 +395,14 @@
     rb.innerHTML = '<div class="loading"><div class="spinner"></div><span>Analyzing with Claude AI…</span></div>';
 
     try {
+      const sessionToken = localStorage.getItem('afc_token');
+      const headers = { 'Content-Type': 'application/json', 'X-Extension-Token': TOKEN };
+      if (sessionToken) headers['X-Session-Token'] = sessionToken;
+
       const res = await fetch(PROXY, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Extension-Token': TOKEN },
-        body: JSON.stringify({ text })
+        headers,
+        body: JSON.stringify({ text, source: 'webapp' })
       });
 
       const data = await res.json();

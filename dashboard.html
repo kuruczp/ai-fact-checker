@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Fact Checker — Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #5c6bc0; --blue-dark: #3949ab; --green: #2e7d32;
+      --text: #1a1a2e; --muted: #666; --border: #e5e7eb; --bg: #f8f9ff;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    a { color: var(--blue); }
+
+    /* ── Header ── */
+    header { background: linear-gradient(135deg, #3949ab, #5c6bc0); color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; text-decoration: none; color: white; }
+    .user-info { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .user-email { opacity: .85; }
+    .btn-sm { padding: 6px 14px; border-radius: 6px; border: 1.5px solid rgba(255,255,255,.4); background: transparent; color: white; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; display: inline-block; }
+    .btn-sm:hover { background: rgba(255,255,255,.15); border-color: white; }
+
+    /* ── Layout ── */
+    main { max-width: 700px; margin: 0 auto; padding: 40px 24px; }
+
+    /* ── Auth card ── */
+    .auth-card { background: white; border-radius: 14px; border: 1px solid var(--border); overflow: hidden; max-width: 420px; margin: 60px auto; }
+    .auth-tabs { display: flex; border-bottom: 1px solid var(--border); }
+    .auth-tab { flex: 1; padding: 14px; text-align: center; font-size: 14px; font-weight: 600; cursor: pointer; color: var(--muted); border: none; background: none; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+    .auth-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+    .auth-body { padding: 28px; }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #333; }
+    input[type="email"], input[type="password"], input[type="text"] { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; transition: border-color .15s; margin-bottom: 16px; }
+    input:focus { border-color: var(--blue); }
+    .btn-primary { width: 100%; padding: 11px; background: var(--blue); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s; }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .auth-error { color: #c62828; font-size: 13px; margin-top: 10px; display: none; }
+    .auth-error.show { display: block; }
+
+    /* ── Dashboard content ── */
+    #dashboard { display: none; }
+    .section-card { background: white; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; overflow: hidden; }
+    .section-header { padding: 16px 20px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+    .section-body { padding: 20px; }
+
+    /* ── Provider keys ── */
+    .provider-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f5f5f5; }
+    .provider-row:last-child { border-bottom: none; }
+    .provider-name { font-weight: 600; font-size: 14px; width: 100px; flex-shrink: 0; }
+    .provider-status { font-size: 12px; padding: 2px 10px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .status-set { background: #e8f5e9; color: #2e7d32; }
+    .status-unset { background: #f3f4f6; color: #888; }
+    .key-input { flex: 1; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; font-family: monospace; outline: none; transition: border-color .15s; }
+    .key-input:focus { border-color: var(--blue); }
+    .btn-set { padding: 7px 14px; background: var(--blue); color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+    .btn-set:hover { background: var(--blue-dark); }
+    .btn-del { padding: 7px 10px; background: #fff5f5; color: #c62828; border: 1px solid #ffcdd2; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; flex-shrink: 0; transition: all .15s; }
+    .btn-del:hover { background: #ffebee; }
+
+    /* ── Downloads ── */
+    .download-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .download-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border: 1.5px solid var(--border); border-radius: 10px; text-align: center; text-decoration: none; color: var(--text); transition: all .15s; }
+    .download-item:hover { border-color: var(--blue); box-shadow: 0 2px 12px rgba(92,107,192,.1); text-decoration: none; }
+    .download-icon { font-size: 28px; }
+    .download-title { font-weight: 600; font-size: 14px; }
+    .download-sub { font-size: 12px; color: var(--muted); }
+
+    /* ── Info box ── */
+    .info-box { background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #3730a3; }
+
+    /* ── Toast ── */
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; z-index: 9999; opacity: 0; transition: all .2s; white-space: nowrap; pointer-events: none; }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { background: #2e7d32; color: white; }
+    #toast.error   { background: #c62828; color: white; }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="white" stroke-width="1.8"/><path d="M9 12l2 2 4-4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    AI Fact Checker
+  </a>
+  <div class="user-info" id="header-user" style="display:none">
+    <span class="user-email" id="header-email"></span>
+    <button class="btn-sm" onclick="doLogout()">Log out</button>
+  </div>
+</header>
+
+<!-- ── Auth UI ── -->
+<div id="auth-section">
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Log in</button>
+      <button class="auth-tab" onclick="switchTab('register')">Register</button>
+    </div>
+    <div class="auth-body">
+      <!-- Login -->
+      <form class="auth-form active" id="login-form" onsubmit="doLogin(event)">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email" />
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password" />
+        <button class="btn-primary" type="submit" id="login-btn">Log in</button>
+        <div class="auth-error" id="login-error"></div>
+      </form>
+      <!-- Register -->
+      <form class="auth-form" id="register-form" onsubmit="doRegister(event)">
+        <label>Email</label>
+        <input type="email" id="reg-email" placeholder="you@example.com" required autocomplete="email" />
+        <label>Password <span style="font-weight:400;color:#888">(min 8 characters)</span></label>
+        <input type="password" id="reg-password" placeholder="••••••••" required autocomplete="new-password" />
+        <button class="btn-primary" type="submit" id="reg-btn">Create account</button>
+        <div class="auth-error" id="reg-error"></div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ── Dashboard UI ── -->
+<div id="dashboard">
+  <main>
+
+    <!-- API Keys -->
+    <div class="section-card">
+      <div class="section-header">
+        🔑 API Keys
+      </div>
+      <div class="section-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+          Add your own API key for any provider. Keys are encrypted with AES-256-GCM before storage — the server can use them but they are never stored in plaintext.
+          If you don't add a key, the default free OpenRouter key is used.
+        </p>
+        <div id="keys-list">
+          <div style="color:var(--muted);font-size:13px">Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Default key notice -->
+    <div class="info-box" style="margin-bottom:20px">
+      💡 <strong>No key set?</strong> The web app uses a shared free OpenRouter key. The extension, bookmarklet, and userscript require you to be logged in but can still use the free key — or your own for better performance.
+    </div>
+
+    <!-- Downloads -->
+    <div class="section-card">
+      <div class="section-header">
+        ⬇ Downloads
+      </div>
+      <div class="section-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">You're logged in — all tools are available.</p>
+        <div class="download-grid">
+          <a href="ai-fact-checker.zip" class="download-item" download>
+            <span class="download-icon">🧩</span>
+            <span class="download-title">Browser Extension</span>
+            <span class="download-sub">Chrome, Firefox, Edge</span>
+          </a>
+          <a href="fact-checker.user.js" class="download-item">
+            <span class="download-icon">⚙</span>
+            <span class="download-title">Userscript</span>
+            <span class="download-sub">Tampermonkey</span>
+          </a>
+          <a href="app.html" class="download-item">
+            <span class="download-icon">🌐</span>
+            <span class="download-title">Web App</span>
+            <span class="download-sub">No install needed</span>
+          </a>
+          <div class="download-item" style="cursor:default" id="bookmarklet-card">
+            <span class="download-icon">🔖</span>
+            <span class="download-title">Bookmarklet</span>
+            <span class="download-sub">Drag to bookmarks bar</span>
+            <a id="bookmarklet-dl" href="#" style="margin-top:4px;font-size:12px;font-weight:600;color:var(--blue)">Get link →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const API = 'https://fact-checker-proxy.kuruczpeter.workers.dev';
+  const EXT = 'fc-ext-v1-a9k2m7';
+  const PROVIDERS = [
+    { id: 'anthropic',  label: 'Anthropic',  hint: 'sk-ant-…' },
+    { id: 'openai',     label: 'OpenAI',     hint: 'sk-…' },
+    { id: 'openrouter', label: 'OpenRouter',  hint: 'sk-or-…' },
+  ];
+
+  let token = localStorage.getItem('afc_token');
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  async function init() {
+    if (!token) { showAuth(); return; }
+    const res = await apiFetch('GET', '/auth/me');
+    if (!res.ok) { localStorage.removeItem('afc_token'); token = null; showAuth(); return; }
+    const { user } = await res.json();
+    showDashboard(user);
+  }
+
+  function showAuth() {
+    document.getElementById('auth-section').style.display = '';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('header-user').style.display = 'none';
+  }
+
+  function showDashboard(user) {
+    document.getElementById('auth-section').style.display = 'none';
+    document.getElementById('dashboard').style.display = '';
+    document.getElementById('header-user').style.display = '';
+    document.getElementById('header-email').textContent = user.email;
+    loadKeys();
+    // Set bookmarklet link
+    const bm = document.getElementById('bookmarklet-dl');
+    if (bm) bm.href = 'index.html#other-ways';
+  }
+
+  // ── Auth tab switch ───────────────────────────────────────────────────────
+
+  function switchTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach((t, i) => t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register')));
+    document.getElementById('login-form').classList.toggle('active', tab === 'login');
+    document.getElementById('register-form').classList.toggle('active', tab === 'register');
+  }
+
+  // ── Login ─────────────────────────────────────────────────────────────────
+
+  async function doLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+    btn.disabled = true; btn.textContent = 'Logging in…'; err.classList.remove('show');
+
+    const res = await apiFetch('POST', '/auth/login', {
+      email:    document.getElementById('login-email').value,
+      password: document.getElementById('login-password').value,
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      err.textContent = data.error; err.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Log in'; return;
+    }
+
+    token = data.token;
+    localStorage.setItem('afc_token', token);
+    showDashboard(data.user);
+  }
+
+  // ── Register ──────────────────────────────────────────────────────────────
+
+  async function doRegister(e) {
+    e.preventDefault();
+    const btn = document.getElementById('reg-btn');
+    const err = document.getElementById('reg-error');
+    btn.disabled = true; btn.textContent = 'Creating account…'; err.classList.remove('show');
+
+    const res = await apiFetch('POST', '/auth/register', {
+      email:    document.getElementById('reg-email').value,
+      password: document.getElementById('reg-password').value,
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      err.textContent = data.error; err.classList.add('show');
+      btn.disabled = false; btn.textContent = 'Create account'; return;
+    }
+
+    token = data.token;
+    localStorage.setItem('afc_token', token);
+    showDashboard(data.user);
+  }
+
+  // ── Logout ────────────────────────────────────────────────────────────────
+
+  async function doLogout() {
+    await apiFetch('POST', '/auth/logout');
+    localStorage.removeItem('afc_token');
+    token = null;
+    showAuth();
+  }
+
+  // ── Keys ──────────────────────────────────────────────────────────────────
+
+  async function loadKeys() {
+    const res  = await apiFetch('GET', '/keys');
+    const data = await res.json();
+    renderKeys(data.keys || []);
+  }
+
+  function renderKeys(keys) {
+    const configured = {};
+    keys.forEach(k => { configured[k.provider] = k.configured; });
+
+    const list = document.getElementById('keys-list');
+    list.innerHTML = PROVIDERS.map(p => `
+      <div class="provider-row" id="row-${p.id}">
+        <span class="provider-name">${p.label}</span>
+        <span class="provider-status ${configured[p.id] ? 'status-set' : 'status-unset'}" id="status-${p.id}">
+          ${configured[p.id] ? '✓ Set' : 'Not set'}
+        </span>
+        <input class="key-input" id="key-${p.id}" type="password" placeholder="${p.hint}" autocomplete="off" />
+        <button class="btn-set" onclick="setKey('${p.id}')">Save</button>
+        ${configured[p.id] ? `<button class="btn-del" onclick="deleteKey('${p.id}')">✕</button>` : ''}
+      </div>
+    `).join('');
+  }
+
+  async function setKey(provider) {
+    const input = document.getElementById(`key-${provider}`);
+    const key   = input.value.trim();
+    if (!key) { showToast('Enter a key first', 'error'); return; }
+
+    const res = await apiFetch('PUT', '/keys', { provider, key });
+    if (!res.ok) { const d = await res.json(); showToast(d.error, 'error'); return; }
+
+    input.value = '';
+    showToast('Key saved', 'success');
+    loadKeys();
+  }
+
+  async function deleteKey(provider) {
+    if (!confirm(`Remove your ${provider} key?`)) return;
+    const res = await apiFetch('DELETE', '/keys', { provider });
+    if (!res.ok) { const d = await res.json(); showToast(d.error, 'error'); return; }
+    showToast('Key removed', 'success');
+    loadKeys();
+  }
+
+  // ── API fetch helper ──────────────────────────────────────────────────────
+
+  function apiFetch(method, path, body) {
+    const headers = { 'Content-Type': 'application/json', 'X-Extension-Token': EXT };
+    if (token) headers['X-Session-Token'] = token;
+    return fetch(API + path, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+
+  function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = `show ${type}`;
+    setTimeout(() => { t.className = ''; }, 3000);
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -5,3 +5,8 @@ compatibility_flags = ["nodejs_compat"]
 
 [observability]
 enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "fact-checker-db"
+database_id = "b05ae88b-eec2-47df-9d32-d1e3bf401fa7"
