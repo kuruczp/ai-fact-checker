@@ -1,10 +1,12 @@
 // AI Fact Checker — Cloudflare Worker
 // Auth + encrypted key storage + AI proxy
 
-const EXTENSION_TOKEN = 'fc-ext-v1-a9k2m7';
-const SESSION_DAYS    = 30;
-const PROVIDERS       = ['anthropic', 'openai', 'openrouter'];
-const AUTH_SOURCES    = ['extension', 'bookmarklet', 'userscript'];
+const EXTENSION_TOKEN  = 'fc-ext-v1-a9k2m7';
+const SESSION_DAYS     = 30;
+const BM_TOKEN_MIN_DAYS = 1;
+const BM_TOKEN_MAX_DAYS = 365;
+const PROVIDERS        = ['anthropic', 'openai', 'openrouter'];
+const AUTH_SOURCES     = ['extension', 'bookmarklet', 'userscript'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -26,9 +28,12 @@ export default {
       if (path === '/auth/login'    && method === 'POST') return await login(request, env);
       if (path === '/auth/logout'   && method === 'POST') return await logout(request, env);
       if (path === '/auth/me'       && method === 'GET')  return await me(request, env);
-      if (path === '/keys'          && method === 'GET')  return await getKeys(request, env);
-      if (path === '/keys'          && method === 'PUT')  return await setKey(request, env);
-      if (path === '/keys'          && method === 'DELETE') return await deleteKey(request, env);
+      if (path === '/keys'       && method === 'GET')    return await getKeys(request, env);
+      if (path === '/keys'       && method === 'PUT')    return await setKey(request, env);
+      if (path === '/keys'       && method === 'DELETE') return await deleteKey(request, env);
+      if (path === '/bm-tokens'  && method === 'GET')    return await listBmTokens(request, env);
+      if (path === '/bm-tokens'  && method === 'POST')   return await createBmToken(request, env);
+      if (path === '/bm-tokens'  && method === 'DELETE') return await revokeBmToken(request, env);
       if ((path === '/' || path === '/check') && method === 'POST') return await check(request, env);
       return json({ error: 'Not found' }, 404);
     } catch (e) {
@@ -133,6 +138,60 @@ async function deleteKey(request, env) {
   return json({ ok: true });
 }
 
+// ── Bookmarklet token handlers ────────────────────────────────────────────────
+
+async function listBmTokens(request, env) {
+  const { user } = await requireSession(request, env);
+  const now = Math.floor(Date.now() / 1000);
+  const rows = await env.DB.prepare(
+    'SELECT token, label, created_at, expires_at FROM bookmarklet_tokens WHERE user_id = ? ORDER BY created_at DESC'
+  ).bind(user.id).all();
+
+  const tokens = (rows.results || []).map(r => ({
+    prefix:     r.token.slice(0, 8) + '…',
+    label:      r.label,
+    created_at: r.created_at,
+    expires_at: r.expires_at,
+    expired:    r.expires_at <= now,
+  }));
+  return json({ tokens });
+}
+
+async function createBmToken(request, env) {
+  const { user } = await requireSession(request, env);
+  const { days = 7, label = 'My Bookmarklet' } = await request.json().catch(() => ({}));
+
+  const clampedDays = Math.max(BM_TOKEN_MIN_DAYS, Math.min(BM_TOKEN_MAX_DAYS, Math.floor(Number(days))));
+  if (!clampedDays) return json({ error: 'Invalid days value' }, 400);
+
+  const token     = genToken();
+  const expiresAt = Math.floor(Date.now() / 1000) + clampedDays * 86400;
+  const safeLabel = String(label).trim().slice(0, 64) || 'My Bookmarklet';
+
+  await env.DB.prepare(
+    'INSERT INTO bookmarklet_tokens (token, user_id, label, expires_at) VALUES (?, ?, ?, ?)'
+  ).bind(token, user.id, safeLabel, expiresAt).run();
+
+  // Return the full token once — it is never returned again
+  return json({ token, label: safeLabel, expires_at: expiresAt, days: clampedDays });
+}
+
+async function revokeBmToken(request, env) {
+  const { user } = await requireSession(request, env);
+  const { prefix } = await request.json().catch(() => ({}));
+  if (!prefix) return json({ error: 'Missing token prefix' }, 400);
+
+  // Match by prefix — safe because we only delete the user's own tokens
+  const row = await env.DB.prepare(
+    "SELECT token FROM bookmarklet_tokens WHERE user_id = ? AND token LIKE ?"
+  ).bind(user.id, prefix.replace('…', '') + '%').first();
+
+  if (!row) return json({ error: 'Token not found' }, 404);
+
+  await env.DB.prepare('DELETE FROM bookmarklet_tokens WHERE token = ?').bind(row.token).run();
+  return json({ ok: true });
+}
+
 // ── Check handler ─────────────────────────────────────────────────────────────
 
 async function check(request, env) {
@@ -216,8 +275,12 @@ async function callProvider(provider, apiKey, prompt) {
 
 // ── Session helpers ───────────────────────────────────────────────────────────
 
+function genToken() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 async function createSession(userId, env) {
-  const token     = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2, '0')).join('');
+  const token     = genToken();
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_DAYS * 86400;
   await env.DB.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)')
     .bind(token, userId, expiresAt).run();
@@ -225,9 +288,18 @@ async function createSession(userId, env) {
 }
 
 async function getSession(token, env) {
-  return env.DB.prepare(
+  const now = Math.floor(Date.now() / 1000);
+  // Check full session tokens first
+  const session = await env.DB.prepare(
     'SELECT user_id FROM sessions WHERE token = ? AND expires_at > ?'
-  ).bind(token, Math.floor(Date.now() / 1000)).first();
+  ).bind(token, now).first();
+  if (session) return session;
+
+  // Fall back to scoped bookmarklet tokens (only valid for /check)
+  const bmToken = await env.DB.prepare(
+    'SELECT user_id FROM bookmarklet_tokens WHERE token = ? AND expires_at > ?'
+  ).bind(token, now).first();
+  return bmToken || null;
 }
 
 async function requireSession(request, env) {

@@ -72,6 +72,29 @@
     /* ── Info box ── */
     .info-box { background: #f0f4ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #3730a3; }
 
+    /* ── Bookmarklet tokens ── */
+    .bm-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-bottom: 20px; }
+    .bm-form label { font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
+    .bm-form input[type="text"] { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; outline: none; transition: border-color .15s; width: 180px; }
+    .bm-form input[type="text"]:focus { border-color: var(--blue); }
+    .days-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .days-row { display: flex; align-items: center; gap: 8px; }
+    input[type="range"] { width: 140px; accent-color: var(--blue); }
+    .days-num { width: 52px; padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 6px; font-size: 13px; text-align: center; outline: none; }
+    .days-num:focus { border-color: var(--blue); }
+    .btn-gen { padding: 9px 18px; background: var(--blue); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background .15s; white-space: nowrap; }
+    .btn-gen:hover { background: var(--blue-dark); }
+    .bm-result { background: #f0f9ff; border: 1.5px solid #bae6fd; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .bm-result p { font-size: 13px; color: #0c4a6e; margin-bottom: 10px; }
+    .bm-drag { display: inline-block; background: #5c6bc0; color: white; padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 600; text-decoration: none; cursor: grab; margin-bottom: 8px; }
+    .bm-warn { font-size: 12px; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 8px 12px; margin-top: 8px; }
+    .bm-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .bm-table th { text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: #888; border-bottom: 1px solid var(--border); }
+    .bm-table td { padding: 10px 10px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+    .bm-table tr:last-child td { border-bottom: none; }
+    .tag-active  { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+    .tag-expired { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+
     /* ── Toast ── */
     #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px); padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: 600; z-index: 9999; opacity: 0; transition: all .2s; white-space: nowrap; pointer-events: none; }
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -139,6 +162,43 @@
         <div id="keys-list">
           <div style="color:var(--muted);font-size:13px">Loading…</div>
         </div>
+      </div>
+    </div>
+
+    <!-- Bookmarklet Tokens -->
+    <div class="section-card">
+      <div class="section-header">🔖 Bookmarklet Tokens</div>
+      <div class="section-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">
+          Generate a personal bookmarklet with a scoped token baked in. It can only call the fact-check endpoint — it cannot access your account or keys. Treat it like a password.
+        </p>
+
+        <!-- Generate form -->
+        <div class="bm-form">
+          <div>
+            <label>Label (optional)</label>
+            <input type="text" id="bm-label" placeholder="e.g. Home laptop" maxlength="64" />
+          </div>
+          <div class="days-wrap">
+            <label>Lifetime: <strong id="bm-days-label">7 days</strong></label>
+            <div class="days-row">
+              <input type="range" id="bm-slider" min="1" max="365" value="7" oninput="syncDays('slider')" />
+              <input type="number" class="days-num" id="bm-days" min="1" max="365" value="7" oninput="syncDays('input')" />
+              <span style="font-size:12px;color:#888">days</span>
+            </div>
+          </div>
+          <button class="btn-gen" onclick="generateBmToken()">Generate bookmarklet</button>
+        </div>
+
+        <!-- Result (shown once after generation) -->
+        <div class="bm-result" id="bm-result" style="display:none">
+          <p><strong>Drag this to your bookmarks bar — it won't be shown again.</strong></p>
+          <a id="bm-drag-link" href="#" class="bm-drag">✓ AI Fact Checker</a>
+          <div class="bm-warn">⚠ Keep this private. If shared or compromised, revoke it below and generate a new one.</div>
+        </div>
+
+        <!-- Token list -->
+        <div id="bm-list"><div style="font-size:13px;color:var(--muted)">Loading…</div></div>
       </div>
     </div>
 
@@ -218,6 +278,7 @@
     document.getElementById('header-user').style.display = '';
     document.getElementById('header-email').textContent = user.email;
     loadKeys();
+    loadBmTokens();
     // Set bookmarklet link
     const bm = document.getElementById('bookmarklet-dl');
     if (bm) bm.href = 'index.html#other-ways';
@@ -289,6 +350,86 @@
   }
 
   // ── Keys ──────────────────────────────────────────────────────────────────
+
+  // ── Bookmarklet tokens ────────────────────────────────────────────────────
+
+  function syncDays(source) {
+    const slider = document.getElementById('bm-slider');
+    const input  = document.getElementById('bm-days');
+    const label  = document.getElementById('bm-days-label');
+    if (source === 'slider') input.value = slider.value;
+    else slider.value = Math.max(1, Math.min(365, input.value || 7));
+    const d = parseInt(slider.value);
+    label.textContent = d === 1 ? '1 day' : `${d} days`;
+  }
+
+  async function generateBmToken() {
+    const days  = parseInt(document.getElementById('bm-days').value) || 7;
+    const label = document.getElementById('bm-label').value.trim() || 'My Bookmarklet';
+    const res   = await apiFetch('POST', '/bm-tokens', { days, label });
+    const data  = await res.json();
+    if (!res.ok) { showToast(data.error, 'error'); return; }
+
+    // Build personalized bookmarklet href
+    const href = buildBookmarkletHref(data.token);
+    const drag = document.getElementById('bm-drag-link');
+    drag.href = href;
+    drag.textContent = '✓ AI Fact Checker';
+    document.getElementById('bm-result').style.display = '';
+
+    document.getElementById('bm-label').value = '';
+    loadBmTokens();
+  }
+
+  async function loadBmTokens() {
+    const res  = await apiFetch('GET', '/bm-tokens');
+    const data = await res.json();
+    renderBmTokens(data.tokens || []);
+  }
+
+  function renderBmTokens(tokens) {
+    const el = document.getElementById('bm-list');
+    if (!tokens.length) { el.innerHTML = '<p style="font-size:13px;color:var(--muted)">No bookmarklet tokens yet.</p>'; return; }
+    el.innerHTML = `
+      <table class="bm-table">
+        <thead><tr><th>Label</th><th>Created</th><th>Expires</th><th>Status</th><th></th></tr></thead>
+        <tbody>${tokens.map(t => `
+          <tr>
+            <td><strong>${esc(t.label)}</strong><br/><span style="font-size:11px;color:#aaa;font-family:monospace">${esc(t.prefix)}</span></td>
+            <td>${fmtDate(t.created_at)}</td>
+            <td>${fmtDate(t.expires_at)}</td>
+            <td><span class="${t.expired ? 'tag-expired' : 'tag-active'}">${t.expired ? 'Expired' : 'Active'}</span></td>
+            <td><button class="btn-del" onclick="revokeBmToken('${esc(t.prefix)}')">Revoke</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  async function revokeBmToken(prefix) {
+    if (!confirm('Revoke this bookmarklet token? The bookmarklet will stop working immediately.')) return;
+    const res = await apiFetch('DELETE', '/bm-tokens', { prefix });
+    if (!res.ok) { const d = await res.json(); showToast(d.error, 'error'); return; }
+    showToast('Token revoked', 'success');
+    loadBmTokens();
+  }
+
+  function buildBookmarkletHref(sessionToken) {
+    // Inline bookmarklet with the token baked in
+    const PROXY = 'https://fact-checker-proxy.kuruczpeter.workers.dev';
+    const EXT   = 'fc-ext-v1-a9k2m7';
+    const code  = `(function(){var S='${sessionToken}',P='${PROXY}',T='${EXT}',ID='_afc_panel';var txt=(window.getSelection()||{}).toString().trim();if(!txt){alert('Select text first');return;}var old=document.getElementById(ID);if(old)old.remove();if(!document.getElementById('_afc_sty')){var s=document.createElement('style');s.id='_afc_sty';s.textContent='@keyframes _afc_sp{to{transform:rotate(360deg)}}';document.head.appendChild(s);}var p=document.createElement('div');p.id=ID;p.style.cssText='all:initial;position:fixed;bottom:24px;right:24px;width:380px;max-width:calc(100vw - 48px);max-height:70vh;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.18);font-family:-apple-system,sans-serif;font-size:14px;color:#1a1a2e;z-index:2147483647;display:flex;flex-direction:column;overflow:hidden;opacity:0;transform:translateY(12px);transition:opacity .2s,transform .2s';p.innerHTML='<div style="display:flex;align-items:center;gap:8px;padding:12px 14px 10px;background:#f8f9ff;border-bottom:1px solid #f0f0f0;flex-shrink:0"><span style="font-weight:600;font-size:14px;color:#2d3561;flex:1">AI Fact Checker</span><button id="_afc_x" style="background:none;border:none;cursor:pointer;font-size:20px;line-height:1;color:#888;padding:0 2px">\xd7</button></div><div style="padding:8px 14px;background:#f4f5fb;border-bottom:1px solid #e8e8f0;font-size:12px;color:#555;font-style:italic;flex-shrink:0">'+'"'+txt.slice(0,100)+(txt.length>100?'…':'')+'"'+'</div><div id="_afc_b" style="padding:14px;overflow-y:auto;flex:1"><div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:20px 0;color:#666;font-size:13px"><div style="width:28px;height:28px;border:3px solid #e0e4f8;border-top-color:#5c6bc0;border-radius:50%;animation:_afc_sp .8s linear infinite"></div><span>Analyzing…</span></div></div>';document.body.appendChild(p);p.querySelector('#_afc_x').onclick=function(){p.remove();};requestAnimationFrame(function(){p.style.opacity='1';p.style.transform='translateY(0)';});var h={'Content-Type':'application/json','X-Extension-Token':T};if(S)h['X-Session-Token']=S;fetch(P,{method:'POST',headers:h,body:JSON.stringify({text:txt,source:'bookmarklet'})}).then(function(r){return r.json();}).then(function(d){var b=document.getElementById('_afc_b');if(!b)return;if(d.error){b.innerHTML='<div style="color:#c62828;padding:12px">⚠ '+d.error+'</div>';return;}b.innerHTML='<div style="padding:4px 0">'+render(d.result||'')+'</div>';}).catch(function(e){var b=document.getElementById('_afc_b');if(b)b.innerHTML='<div style="color:#c62828;padding:12px">⚠ '+e.message+'</div>';});function render(t){var ls=t.split('\\n'),h='',il=false,isQ=ls.some(function(l){return l.indexOf('TYPE: QUESTION')>=0;});for(var i=0;i<ls.length;i++){var l=ls[i].replace(/\\s+$/,'');if(/^TYPE:/.test(l))continue;if(isQ){if(/^CORRECT ANSWER/i.test(l)){if(il){h+='</ul>';il=false;}h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#2e7d32;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid #a5d6a7">✓ Correct Answer(s)</div>';continue;}if(/^CONFIDENCE:/i.test(l)){if(il){h+='</ul>';il=false;}var cv=l.replace(/^CONFIDENCE:/i,'').trim();h+='<div style="font-size:13px;color:#555;margin-bottom:10px"><strong>Confidence:</strong> '+cv+'</div>';continue;}if(/^EXPLANATION:/i.test(l)){if(il){h+='</ul>';il=false;}h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#5c6bc0;margin:10px 0 6px">Explanation</div>';continue;}if(/^[-•] /.test(l)){if(!il){h+='<ul style="list-style:none;padding:0;margin:0 0 8px">';il=true;}h+='<li style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:6px;padding:6px 10px;margin-bottom:5px;color:#1b5e20;font-size:13px">'+l.slice(2)+'</li>';continue;}}else{if(/^VERDICT:/.test(l)){if(il){h+='</ul>';il=false;}var v=l.replace(/^VERDICT:/,'').trim(),cs={TRUE:['#e8f5e9','#2e7d32','#a5d6a7'],FALSE:['#ffebee','#c62828','#ef9a9a'],MISLEADING:['#fff3e0','#e65100','#ffcc80'],'PARTIALLY TRUE':['#fff8e1','#f57f17','#ffe082']}[v]||['#f3f4f6','#555','#d1d5db'];h+='<div style="margin-bottom:10px"><span style="display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:13px;text-transform:uppercase;background:'+cs[0]+';color:'+cs[1]+';border:1.5px solid '+cs[2]+'">'+v+'</span></div>';continue;}if(/^CONFIDENCE:/.test(l)){if(il){h+='</ul>';il=false;}h+='<div style="font-size:13px;color:#555;margin-bottom:10px"><strong>Confidence:</strong> '+l.replace(/^CONFIDENCE:/,'').trim()+'</div>';continue;}var sm=l.match(/^(SUMMARY|KEY FACTS|SOURCES TO CHECK):?$/);if(sm){if(il){h+='</ul>';il=false;}h+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#5c6bc0;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #e8e8f8">'+sm[1]+'</div>';continue;}if(/^[-•] /.test(l)){if(!il){h+='<ul style="margin:0 0 8px;padding-left:18px;font-size:13px;color:#444">';il=true;}h+='<li style="margin-bottom:4px">'+l.slice(2)+'</li>';continue;}}if(il){h+='</ul>';il=false;}if(l.trim())h+='<p style="margin:0 0 8px;font-size:13px;color:#444">'+l+'</p>';}if(il)h+='</ul>';return h;}})();`;
+    return 'javascript:' + encodeURIComponent(code);
+  }
+
+  function fmtDate(unix) {
+    return new Date(unix * 1000).toLocaleDateString(undefined, { day:'2-digit', month:'short', year:'numeric' });
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── API Keys ──────────────────────────────────────────────────────────────
 
   async function loadKeys() {
     const res  = await apiFetch('GET', '/keys');
