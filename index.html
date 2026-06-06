@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Fact Checker — Browser Extension</title>
-  <meta name="description" content="Select any text on any webpage. Fact-check claims, get quiz answers, or silently auto-fill quizzes with a keyboard shortcut. Free, no account needed." />
+  <title>AI Fact Checker — Free AI Tool for Any Browser</title>
+  <meta name="description" content="Fact-check claims, get quiz answers, or auto-fill quiz forms — as a browser extension, web app, bookmarklet, or userscript. Free, no account needed." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -340,17 +340,20 @@
 <section class="hero">
   <div class="hero-badge">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Free Browser Extension
+    Free · No account required
   </div>
   <h1>Your AI assistant<br/><span>for any text you read.</span></h1>
-  <p>Fact-check claims, get quiz answers, or press <strong>Alt+Shift+F</strong> to silently auto-fill quiz forms — in any language. Completely free.</p>
+  <p>Fact-check claims, get quiz answers, or press <strong>Alt+Shift+F</strong> to silently auto-fill quiz forms — in any language. Works as an extension, web app, bookmarklet, or userscript.</p>
 
   <div class="hero-buttons">
-    <a href="#install" class="btn btn-white">
+    <a href="app.html" class="btn btn-white">
+      🌐 Try Web App
+    </a>
+    <a href="#install" class="btn btn-ghost">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Install Extension
     </a>
-    <a href="#modes" class="btn btn-ghost">See what it does</a>
+    <a href="#other-ways" class="btn btn-ghost">More options ↓</a>
   </div>
 
   <div class="demo-wrap">
@@ -418,6 +421,15 @@
     </div>
   </div>
 </section>
+
+<!-- ════ QUICK ACCESS STRIP ════ -->
+<div style="background:#1a1a2e;padding:14px 24px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center">
+  <span style="color:rgba(255,255,255,0.5);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Use it as:</span>
+  <a href="app.html" style="color:white;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.25);transition:all .15s" onmouseover="this.style.borderColor='white'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">🌐 Web App</a>
+  <a href="#install" style="color:white;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.25);transition:all .15s" onmouseover="this.style.borderColor='white'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">🧩 Extension</a>
+  <a href="#other-ways" style="color:white;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.25);transition:all .15s" onmouseover="this.style.borderColor='white'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">🔖 Bookmarklet</a>
+  <a href="fact-checker.user.js" style="color:white;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.25);transition:all .15s" onmouseover="this.style.borderColor='white'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">⚙ Userscript</a>
+</div>
 
 <!-- ════ MODES ════ -->
 <section class="section" id="modes">
@@ -589,7 +601,7 @@
 </section>
 
 <!-- ════ OTHER WAYS ════ -->
-<section class="section" style="background:white;padding-top:48px;padding-bottom:48px">
+<section id="other-ways" class="section" style="background:white;padding-top:48px;padding-bottom:48px">
   <div class="section-inner">
     <h2 class="section-title">Other ways to use it</h2>
     <p class="section-sub">No extension install needed — pick what works best for you.</p>
