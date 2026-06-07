@@ -348,6 +348,98 @@
   </div>
 </nav>
 
+<!-- ════ INLINE WEB APP ════ -->
+<section style="background:white;padding:40px 24px 32px;border-bottom:1px solid #e5e7eb">
+  <div style="max-width:680px;margin:0 auto">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      <h2 style="font-size:20px;font-weight:700;color:#1a1a2e">Try it now — no login needed</h2>
+      <span style="font-size:13px;color:#888">Paste a claim or a quiz question with its options</span>
+    </div>
+    <textarea id="lp-input" placeholder="e.g. &quot;The Great Wall of China is visible from space.&quot;&#10;&#10;Or paste a multiple-choice question with its answer options…" style="width:100%;min-height:110px;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:inherit;font-size:14px;outline:none;resize:vertical;line-height:1.6;transition:border-color .15s" onfocus="this.style.borderColor='#5c6bc0'" onblur="this.style.borderColor='#e5e7eb'" oninput="document.getElementById('lp-count').textContent=Math.min(this.value.length,3000)"></textarea>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:12px;color:#aaa"><span id="lp-count">0</span> / 3000 &nbsp;·&nbsp; <kbd style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:1px 5px;font-size:11px">Ctrl+Enter</kbd> to submit</span>
+      <div style="display:flex;gap:8px">
+        <button onclick="lpClear()" style="padding:9px 18px;background:#f3f4f6;color:#555;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Clear</button>
+        <button onclick="lpCheck()" id="lp-btn" style="padding:9px 22px;background:#5c6bc0;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s">Analyze →</button>
+      </div>
+    </div>
+    <div id="lp-result" style="display:none;margin-top:16px;background:#f8f9ff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
+      <div id="lp-result-inner" style="padding:16px"></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function(){
+    const PROXY = 'https://fact-checker-proxy.kuruczpeter.workers.dev';
+    const EXT   = 'fc-ext-v1-a9k2m7';
+
+    if (!document.getElementById('_lp_sty')) {
+      const s = document.createElement('style'); s.id = '_lp_sty';
+      s.textContent = '@keyframes _lp_spin{to{transform:rotate(360deg)}}';
+      document.head.appendChild(s);
+    }
+
+    window.lpClear = function() {
+      document.getElementById('lp-input').value = '';
+      document.getElementById('lp-count').textContent = '0';
+      document.getElementById('lp-result').style.display = 'none';
+    };
+
+    window.lpCheck = async function() {
+      const text = document.getElementById('lp-input').value.trim().slice(0, 3000);
+      if (!text) { document.getElementById('lp-input').focus(); return; }
+      const btn = document.getElementById('lp-btn');
+      const res = document.getElementById('lp-result');
+      const inner = document.getElementById('lp-result-inner');
+      btn.disabled = true; btn.textContent = 'Analyzing…';
+      res.style.display = '';
+      inner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;color:#666;font-size:13px"><div style="width:20px;height:20px;border:2px solid #e0e4f8;border-top-color:#5c6bc0;border-radius:50%;animation:_lp_spin .8s linear infinite;flex-shrink:0"></div>Analyzing with AI…</div>';
+      try {
+        const tok = localStorage.getItem('afc_token');
+        const headers = { 'Content-Type': 'application/json', 'X-Extension-Token': EXT };
+        if (tok) headers['X-Session-Token'] = tok;
+        const r = await fetch(PROXY, { method:'POST', headers, body: JSON.stringify({ text, source:'webapp' }) });
+        const d = await r.json();
+        if (d.error) throw new Error(d.error);
+        inner.innerHTML = lpRender(d.result || '');
+      } catch(e) {
+        inner.innerHTML = '<div style="color:#c62828;font-size:13px">⚠ ' + e.message + '</div>';
+      } finally {
+        btn.disabled = false; btn.textContent = 'Analyze →';
+      }
+    };
+
+    document.getElementById('lp-input').addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') window.lpCheck();
+    });
+
+    function lpRender(text) {
+      const lines = text.split('\n'); let html = '', il = false;
+      const isQ = lines.some(l => l.includes('TYPE: QUESTION'));
+      for (const raw of lines) {
+        const line = raw.trimEnd();
+        if (/^TYPE:/.test(line)) continue;
+        if (isQ) {
+          if (/^CORRECT ANSWER/i.test(line)) { if (il){html+='</ul>';il=false;} html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#2e7d32;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid #a5d6a7">✓ Correct Answer(s)</div>'; continue; }
+          if (/^CONFIDENCE:/i.test(line)) { if (il){html+='</ul>';il=false;} const c=line.replace(/^CONFIDENCE:/i,'').trim(),cc=c==='HIGH'?'#2e7d32':c==='MEDIUM'?'#e65100':'#c62828'; html+=`<div style="font-size:13px;color:#555;margin-bottom:10px"><strong>Confidence:</strong> <span style="color:${cc};font-weight:600">${c}</span></div>`; continue; }
+          if (/^EXPLANATION:/i.test(line)) { if (il){html+='</ul>';il=false;} html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#5c6bc0;margin:12px 0 6px">Explanation</div>'; continue; }
+          if (/^[-•] /.test(line)) { if (!il){html+='<ul style="list-style:none;padding:0;margin:0 0 8px">';il=true;} html+=`<li style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:6px;padding:6px 10px;margin-bottom:5px;color:#1b5e20;font-size:13px;font-weight:500">${line.slice(2)}</li>`; continue; }
+        } else {
+          if (/^VERDICT:/.test(line)) { if (il){html+='</ul>';il=false;} const v=line.replace(/^VERDICT:/,'').trim(),m={TRUE:['#e8f5e9','#2e7d32','#a5d6a7'],FALSE:['#ffebee','#c62828','#ef9a9a'],MISLEADING:['#fff3e0','#e65100','#ffcc80'],'PARTIALLY TRUE':['#fff8e1','#f57f17','#ffe082']}[v]||['#f3f4f6','#555','#d1d5db']; html+=`<div style="margin-bottom:10px"><span style="display:inline-block;padding:4px 14px;border-radius:20px;font-weight:700;font-size:13px;text-transform:uppercase;background:${m[0]};color:${m[1]};border:1.5px solid ${m[2]}">${v}</span></div>`; continue; }
+          if (/^CONFIDENCE:/.test(line)) { if (il){html+='</ul>';il=false;} const c=line.replace(/^CONFIDENCE:/,'').trim(),cc=c==='HIGH'?'#2e7d32':c==='MEDIUM'?'#e65100':'#c62828'; html+=`<div style="font-size:13px;color:#555;margin-bottom:10px"><strong>Confidence:</strong> <span style="color:${cc};font-weight:600">${c}</span></div>`; continue; }
+          const sm=line.match(/^(SUMMARY|KEY FACTS|SOURCES TO CHECK):?$/); if (sm) { if (il){html+='</ul>';il=false;} html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#5c6bc0;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid #e8e8f8">${sm[1]}</div>`; continue; }
+          if (/^[-•] /.test(line)) { if (!il){html+='<ul style="margin:0 0 8px;padding-left:18px;font-size:13px;color:#444">';il=true;} html+=`<li style="margin-bottom:4px">${line.slice(2)}</li>`; continue; }
+        }
+        if (il){html+='</ul>';il=false;}
+        if (line.trim()) html+=`<p style="margin:0 0 8px;font-size:13px;color:#444">${line}</p>`;
+      }
+      if (il) html+='</ul>';
+      return html;
+    }
+  })();
+</script>
+
 <!-- ════ HERO ════ -->
 <section class="hero">
   <div class="hero-badge">

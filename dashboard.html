@@ -138,6 +138,8 @@
         <input type="email" id="reg-email" placeholder="you@example.com" required autocomplete="email" />
         <label>Password <span style="font-weight:400;color:#888">(min 8 characters)</span></label>
         <input type="password" id="reg-password" placeholder="••••••••" required autocomplete="new-password" />
+        <label>Confirm password</label>
+        <input type="password" id="reg-confirm" placeholder="••••••••" required autocomplete="new-password" />
         <button class="btn-primary" type="submit" id="reg-btn">Create account</button>
         <div class="auth-error" id="reg-error"></div>
       </form>
@@ -320,13 +322,24 @@
 
   async function doRegister(e) {
     e.preventDefault();
-    const btn = document.getElementById('reg-btn');
-    const err = document.getElementById('reg-error');
-    btn.disabled = true; btn.textContent = 'Creating account…'; err.classList.remove('show');
+    const btn      = document.getElementById('reg-btn');
+    const err      = document.getElementById('reg-error');
+    const password = document.getElementById('reg-password').value;
+    const confirm  = document.getElementById('reg-confirm').value;
+
+    err.classList.remove('show');
+
+    if (password !== confirm) {
+      err.textContent = 'Passwords do not match.';
+      err.classList.add('show');
+      return;
+    }
+
+    btn.disabled = true; btn.textContent = 'Creating account…';
 
     const res = await apiFetch('POST', '/auth/register', {
       email:    document.getElementById('reg-email').value,
-      password: document.getElementById('reg-password').value,
+      password,
     });
     const data = await res.json();
 
