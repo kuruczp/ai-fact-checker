@@ -11,6 +11,11 @@
       --text: #1a1a2e; --muted: #666; --border: #e5e7eb; --bg: #f8f9ff;
     }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    /* Hide everything until JS decides what to show — prevents flash */
+    #auth-section, #dashboard { display: none; }
+    #loading-screen { display: flex; align-items: center; justify-content: center; min-height: 60vh; gap: 12px; color: var(--muted); font-size: 15px; }
+    .loading-spin { width: 28px; height: 28px; border: 3px solid #e0e4f8; border-top-color: var(--blue); border-radius: 50%; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     a { color: var(--blue); }
 
     /* ── Header ── */
@@ -114,6 +119,9 @@
     <button class="btn-sm" onclick="doLogout()">Log out</button>
   </div>
 </header>
+
+<!-- Loading screen shown until JS runs -->
+<div id="loading-screen"><div class="loading-spin"></div> Loading…</div>
 
 <!-- ── Auth UI ── -->
 <div id="auth-section">
@@ -268,15 +276,21 @@
     showDashboard(user);
   }
 
+  function hideLoader() {
+    document.getElementById('loading-screen').style.display = 'none';
+  }
+
   function showAuth() {
-    document.getElementById('auth-section').style.display = '';
+    hideLoader();
+    document.getElementById('auth-section').style.display = 'block';
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('header-user').style.display = 'none';
   }
 
   function showDashboard(user) {
+    hideLoader();
     document.getElementById('auth-section').style.display = 'none';
-    document.getElementById('dashboard').style.display = '';
+    document.getElementById('dashboard').style.display = 'block';
     document.getElementById('header-user').style.display = '';
     document.getElementById('header-email').textContent = user.email;
     loadKeys();
@@ -395,9 +409,14 @@
   }
 
   async function loadBmTokens() {
-    const res  = await apiFetch('GET', '/bm-tokens');
-    const data = await res.json();
-    renderBmTokens(data.tokens || []);
+    try {
+      const res  = await apiFetch('GET', '/bm-tokens');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load tokens');
+      renderBmTokens(data.tokens || []);
+    } catch (e) {
+      document.getElementById('bm-list').innerHTML = `<p style="color:#c62828;font-size:13px">⚠ ${esc(e.message)}</p>`;
+    }
   }
 
   function renderBmTokens(tokens) {
@@ -445,9 +464,14 @@
   // ── API Keys ──────────────────────────────────────────────────────────────
 
   async function loadKeys() {
-    const res  = await apiFetch('GET', '/keys');
-    const data = await res.json();
-    renderKeys(data.keys || []);
+    try {
+      const res  = await apiFetch('GET', '/keys');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load keys');
+      renderKeys(data.keys || []);
+    } catch (e) {
+      document.getElementById('keys-list').innerHTML = `<p style="color:#c62828;font-size:13px">⚠ ${esc(e.message)}</p>`;
+    }
   }
 
   function renderKeys(keys) {
