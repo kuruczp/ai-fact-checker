@@ -348,44 +348,51 @@
   </div>
 </nav>
 
-<!-- ════ INLINE WEB APP ════ -->
-<section style="background:white;padding:40px 24px 32px;border-bottom:1px solid #e5e7eb">
-  <div style="max-width:680px;margin:0 auto">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px">
-      <h2 style="font-size:20px;font-weight:700;color:#1a1a2e">Try it now — no login needed</h2>
-      <span style="font-size:13px;color:#888">Paste a claim or a quiz question with its options</span>
+<!-- ════ HERO ════ -->
+<section class="hero" style="padding-bottom:56px">
+  <div class="hero-badge">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Powered by Claude AI &middot; Free
+  </div>
+  <h1>Your AI assistant<br/><span>for any text you read.</span></h1>
+  <p style="margin-bottom:32px">Fact-check claims, get quiz answers, or auto-fill quiz forms — in any language. Try it right now, no login needed.</p>
+
+  <!-- Live app embedded in hero -->
+  <div style="max-width:640px;margin:0 auto;background:white;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;text-align:left">
+    <div style="padding:16px 18px 0">
+      <textarea id="lp-input" placeholder="Paste a claim, headline, or multiple-choice question with its answer options…" style="width:100%;min-height:100px;padding:10px 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;outline:none;resize:vertical;line-height:1.6;color:#1a1a2e;transition:border-color .15s" onfocus="this.style.borderColor='#5c6bc0'" onblur="this.style.borderColor='#e5e7eb'" oninput="document.getElementById('lp-count').textContent=Math.min(this.value.length,3000)"></textarea>
     </div>
-    <textarea id="lp-input" placeholder="e.g. &quot;The Great Wall of China is visible from space.&quot;&#10;&#10;Or paste a multiple-choice question with its answer options…" style="width:100%;min-height:110px;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-family:inherit;font-size:14px;outline:none;resize:vertical;line-height:1.6;transition:border-color .15s" onfocus="this.style.borderColor='#5c6bc0'" onblur="this.style.borderColor='#e5e7eb'" oninput="document.getElementById('lp-count').textContent=Math.min(this.value.length,3000)"></textarea>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;flex-wrap:wrap;gap:8px">
-      <span style="font-size:12px;color:#aaa"><span id="lp-count">0</span> / 3000 &nbsp;·&nbsp; <kbd style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:1px 5px;font-size:11px">Ctrl+Enter</kbd> to submit</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px 16px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:12px;color:#aaa"><span id="lp-count">0</span>&thinsp;/&thinsp;3000 &nbsp;&middot;&nbsp; <kbd style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:4px;padding:1px 5px;font-size:11px;color:#555">Ctrl+Enter</kbd></span>
       <div style="display:flex;gap:8px">
-        <button onclick="lpClear()" style="padding:9px 18px;background:#f3f4f6;color:#555;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Clear</button>
-        <button onclick="lpCheck()" id="lp-btn" style="padding:9px 22px;background:#5c6bc0;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s">Analyze →</button>
+        <button onclick="lpClear()" style="padding:8px 16px;background:#f3f4f6;color:#555;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer">Clear</button>
+        <button onclick="lpCheck()" id="lp-btn" style="padding:8px 20px;background:#5c6bc0;color:white;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s">Analyze →</button>
       </div>
     </div>
-    <div id="lp-result" style="display:none;margin-top:16px;background:#f8f9ff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden">
-      <div id="lp-result-inner" style="padding:16px"></div>
+    <div id="lp-result" style="display:none;border-top:1px solid #f0f0f0">
+      <div id="lp-result-inner" style="padding:16px;font-family:-apple-system,BlinkMacSystemFont,sans-serif"></div>
     </div>
   </div>
+
+  <p style="margin-top:20px;opacity:.75;font-size:14px">
+    Want it on every page? <a href="dashboard.html" style="color:white;font-weight:600;text-decoration:underline">Create a free account</a> to unlock the extension, bookmarklet &amp; userscript.
+  </p>
 </section>
 
 <script>
   (function(){
     const PROXY = 'https://fact-checker-proxy.kuruczpeter.workers.dev';
     const EXT   = 'fc-ext-v1-a9k2m7';
-
     if (!document.getElementById('_lp_sty')) {
       const s = document.createElement('style'); s.id = '_lp_sty';
       s.textContent = '@keyframes _lp_spin{to{transform:rotate(360deg)}}';
       document.head.appendChild(s);
     }
-
     window.lpClear = function() {
       document.getElementById('lp-input').value = '';
       document.getElementById('lp-count').textContent = '0';
       document.getElementById('lp-result').style.display = 'none';
     };
-
     window.lpCheck = async function() {
       const text = document.getElementById('lp-input').value.trim().slice(0, 3000);
       if (!text) { document.getElementById('lp-input').focus(); return; }
@@ -409,11 +416,9 @@
         btn.disabled = false; btn.textContent = 'Analyze →';
       }
     };
-
-    document.getElementById('lp-input').addEventListener('keydown', e => {
+    document.addEventListener('keydown', e => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') window.lpCheck();
     });
-
     function lpRender(text) {
       const lines = text.split('\n'); let html = '', il = false;
       const isQ = lines.some(l => l.includes('TYPE: QUESTION'));
@@ -440,99 +445,14 @@
   })();
 </script>
 
-<!-- ════ HERO ════ -->
-<section class="hero">
-  <div class="hero-badge">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    Free · No account required for web app
-  </div>
-  <h1>Your AI assistant<br/><span>for any text you read.</span></h1>
-  <p>Fact-check claims or get quiz answers — instantly, in any language. The web app is free for everyone. The extension, bookmarklet, and userscript require a free account.</p>
-
-  <div class="hero-buttons">
-    <a href="app.html" class="btn btn-white">
-      🌐 Try Web App — free
-    </a>
-    <a href="dashboard.html" class="btn btn-ghost">
-      Log in for more tools →
-    </a>
-  </div>
-
-  <div class="demo-wrap">
-    <div class="demo-toggle">
-      <button class="active" onclick="switchDemo('factcheck', this)">📋 Fact-check</button>
-      <button onclick="switchDemo('quiz', this)">🎓 Quiz answer</button>
-      <button onclick="switchDemo('autofill', this)">⌨ Auto-fill</button>
-    </div>
-    <div class="demo-panel">
-      <div class="demo-header">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#5c6bc0" stroke-width="2"/><path d="M12 8v4M12 16h.01" stroke="#5c6bc0" stroke-width="2" stroke-linecap="round"/></svg>
-        <span class="demo-title">AI Fact Checker</span>
-        <span style="color:#aaa;font-size:10px;font-weight:600;background:#f0f4ff;padding:2px 7px;border-radius:10px;margin-right:4px">FREE</span>
-        <span style="color:#ccc;font-size:18px;cursor:pointer">×</span>
-      </div>
-
-      <!-- Fact-check demo -->
-      <div id="demo-factcheck" class="demo-screen active">
-        <div class="demo-claim"><strong>Checking:</strong> "The Great Wall of China is visible from space with the naked eye."</div>
-        <div class="demo-body">
-          <div style="margin-bottom:8px">
-            <span class="badge badge-partial">Partially True</span>
-            <span class="badge badge-conf">Confidence: HIGH</span>
-          </div>
-          <div class="demo-section">Summary</div>
-          <p class="demo-text">While the Great Wall is an impressive structure, it is generally not visible from space with the naked eye. The wall lacks sufficient contrast against the surrounding landscape at orbital distances.</p>
-          <div class="demo-section">Key Facts</div>
-          <ul class="demo-list">
-            <li>The claim has been repeated since the 1930s but lacks evidence</li>
-            <li>NASA astronauts confirmed it cannot be seen unaided from orbit</li>
-            <li>Wall width (~5–8 m) is comparable to a human hair at arm's length</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Quiz popup demo -->
-      <div id="demo-quiz" class="demo-screen">
-        <div class="demo-claim"><strong>Checking:</strong> "Mi vagy melyek az aerob és az anaerob állóképesség közös jellemzői? — Több jó válasz is lehetséges"</div>
-        <div class="demo-body">
-          <div class="demo-section green">✓ Correct Answer(s)</div>
-          <ul class="demo-answer-list">
-            <li class="demo-answer-item">Nő a szervezet tejsavszint toleranciája</li>
-            <li class="demo-answer-item">A mitokondriumok száma növekszik az izomsejtekben</li>
-          </ul>
-          <span class="badge badge-conf" style="margin-bottom:10px;display:inline-block">Confidence: HIGH</span>
-          <div class="demo-section">Explanation</div>
-          <p class="demo-text">Both aerobic and anaerobic endurance training increase the body's lactate tolerance and mitochondrial density in muscle cells.</p>
-        </div>
-      </div>
-
-      <!-- Auto-fill demo -->
-      <div id="demo-autofill" class="demo-screen">
-        <div class="demo-claim"><strong>Mode:</strong> Select question → press Alt+Shift+F → done, no popup</div>
-        <div class="demo-body">
-          <div class="demo-section" style="margin-top:0;color:#555;border-color:#e5e7eb">Quiz form on the page</div>
-          <div class="demo-form" style="margin-top:10px">
-            <div class="demo-check-row filled"><span class="demo-cb">✓</span><span>Nő a szervezet tejsavszint toleranciája</span></div>
-            <div class="demo-check-row"><span class="demo-cb"></span><span>Nő a VO2max értéke</span></div>
-            <div class="demo-check-row filled"><span class="demo-cb">✓</span><span>A mitokondriumok száma növekszik az izomsejtekben</span></div>
-            <div class="demo-check-row"><span class="demo-cb"></span><span>Nő a tejsavszintet csökkentő folyamatok hatékonysága</span></div>
-          </div>
-          <div class="demo-shortcut-hint">✓ 2 answers auto-filled &nbsp;·&nbsp; <span class="kbd">Alt</span>+<span class="kbd">Shift</span>+<span class="kbd">F</span></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- ════ QUICK ACCESS STRIP ════ -->
-<div style="background:#1a1a2e;padding:14px 24px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center">
-  <span style="color:rgba(255,255,255,0.5);font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em">Available:</span>
-  <a href="app.html" style="color:white;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.25);transition:all .15s" onmouseover="this.style.borderColor='white'" onmouseout="this.style.borderColor='rgba(255,255,255,0.25)'">🌐 Web App</a>
-  <span style="color:rgba(255,255,255,0.3);font-size:12px">·</span>
+<div style="background:#1a1a2e;padding:12px 24px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;align-items:center">
+  <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false" style="color:rgba(255,255,255,.6);font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(255,255,255,0.2)" onmouseover="this.style.borderColor='rgba(255,255,255,.5)'" onmouseout="this.style.borderColor='rgba(255,255,255,.2)'">↑ Try web app</a>
+  <span style="color:rgba(255,255,255,0.2)">·</span>
   <span style="color:rgba(255,255,255,0.4);font-size:13px">🧩 Extension</span>
   <span style="color:rgba(255,255,255,0.4);font-size:13px">🔖 Bookmarklet</span>
   <span style="color:rgba(255,255,255,0.4);font-size:13px">⚙ Userscript</span>
-  <a href="dashboard.html" style="color:#a5b4fc;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(165,180,252,0.4);transition:all .15s" onmouseover="this.style.borderColor='#a5b4fc'" onmouseout="this.style.borderColor='rgba(165,180,252,0.4)'">Log in to unlock →</a>
+  <a href="dashboard.html" style="color:#a5b4fc;font-size:13px;font-weight:600;text-decoration:none;padding:5px 14px;border-radius:20px;border:1.5px solid rgba(165,180,252,0.4)" onmouseover="this.style.borderColor='#a5b4fc'" onmouseout="this.style.borderColor='rgba(165,180,252,0.4)'">Log in to unlock →</a>
 </div>
 
 <!-- ════ MODES ════ -->
