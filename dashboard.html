@@ -157,6 +157,10 @@
 
 <!-- ── Dashboard UI ── -->
 <div id="dashboard">
+  <div id="verify-banner" style="display:none;background:#fffbeb;border-bottom:2px solid #fde68a;padding:12px 24px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span>⚠ Your email address is not verified. Check your inbox for a confirmation link.</span>
+    <button id="resend-btn" onclick="resendVerification()" style="background:none;border:1.5px solid #d97706;color:#92400e;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer">Resend email</button>
+  </div>
   <main>
 
     <!-- API Keys -->
@@ -269,11 +273,38 @@
   // ── Init ──────────────────────────────────────────────────────────────────
 
   async function init() {
+    // Handle email verification link (?verify=TOKEN)
+    const params      = new URLSearchParams(window.location.search);
+    const verifyToken = params.get('verify');
+    if (verifyToken) {
+      const res = await apiFetch('POST', '/auth/verify', { token: verifyToken });
+      // Clean URL regardless of outcome
+      history.replaceState({}, '', window.location.pathname);
+      if (res.ok) {
+        showToast('Email verified! You can now log in.', 'success');
+        // Refresh user data if already logged in
+        if (token) { const r2 = await apiFetch('GET', '/auth/me'); if (r2.ok) { const { user } = await r2.json(); showDashboard(user); return; } }
+      } else {
+        const d = await res.json();
+        showToast(d.error || 'Verification failed.', 'error');
+      }
+    }
+
     if (!token) { showAuth(); return; }
     const res = await apiFetch('GET', '/auth/me');
     if (!res.ok) { localStorage.removeItem('afc_token'); token = null; showAuth(); return; }
     const { user } = await res.json();
     showDashboard(user);
+  }
+
+  async function resendVerification() {
+    const btn = document.getElementById('resend-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    const res = await apiFetch('POST', '/auth/resend-verification');
+    const d   = await res.json();
+    if (res.ok) showToast('Verification email sent!', 'success');
+    else        showToast(d.error || 'Failed to send email.', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Resend email'; }
   }
 
   function hideLoader() {
@@ -293,11 +324,15 @@
     document.getElementById('dashboard').style.display = 'block';
     document.getElementById('header-user').style.display = '';
     document.getElementById('header-email').textContent = user.email;
+    // Show verification banner if email not verified
+    const banner = document.getElementById('verify-banner');
+    if (banner) banner.style.display = user.verified ? 'none' : 'flex';
     loadKeys();
     loadBmTokens();
     // Set bookmarklet link
+    // Scroll to bookmarklet section when "Get link" is clicked
     const bm = document.getElementById('bookmarklet-dl');
-    if (bm) bm.href = 'index.html#other-ways';
+    if (bm) { bm.href = '#'; bm.onclick = (e) => { e.preventDefault(); document.querySelector('.section-card').scrollIntoView({ behavior: 'smooth' }); }; }
   }
 
   // ── Auth tab switch ───────────────────────────────────────────────────────

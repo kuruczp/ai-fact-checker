@@ -25,10 +25,12 @@ export default {
     const method = request.method;
 
     try {
-      if (path === '/auth/register' && method === 'POST') return await register(request, env);
-      if (path === '/auth/login'    && method === 'POST') return await login(request, env);
-      if (path === '/auth/logout'   && method === 'POST') return await logout(request, env);
-      if (path === '/auth/me'       && method === 'GET')  return await me(request, env);
+      if (path === '/auth/register'             && method === 'POST') return await register(request, env);
+      if (path === '/auth/login'                && method === 'POST') return await login(request, env);
+      if (path === '/auth/logout'               && method === 'POST') return await logout(request, env);
+      if (path === '/auth/me'                   && method === 'GET')  return await me(request, env);
+      if (path === '/auth/verify'               && method === 'POST') return await verifyEmail(request, env);
+      if (path === '/auth/resend-verification'  && method === 'POST') return await resendVerification(request, env);
       if (path === '/keys'       && method === 'GET')    return await getKeys(request, env);
       if (path === '/keys'       && method === 'PUT')    return await setKey(request, env);
       if (path === '/keys'       && method === 'DELETE') return await deleteKey(request, env);
@@ -59,11 +61,37 @@ async function register(request, env) {
   const id = crypto.randomUUID();
 
   await env.DB.prepare(
-    'INSERT INTO users (id, email, password_hash, password_salt) VALUES (?, ?, ?, ?)'
+    'INSERT INTO users (id, email, password_hash, password_salt, verified) VALUES (?, ?, ?, ?, 0)'
   ).bind(id, email.toLowerCase(), hash, salt).run();
 
+  // Send verification email (non-blocking — registration succeeds even if email fails)
+  sendVerificationEmailTo(id, email.toLowerCase(), env).catch(() => {});
+
   const token = await createSession(id, env);
-  return json({ token, user: { id, email: email.toLowerCase() } });
+  return json({ token, user: { id, email: email.toLowerCase(), verified: false } });
+}
+
+async function verifyEmail(request, env) {
+  const { token } = await request.json().catch(() => ({}));
+  if (!token) return json({ error: 'Missing token' }, 400);
+
+  const now = Math.floor(Date.now() / 1000);
+  const row = await env.DB.prepare(
+    "SELECT user_id FROM email_tokens WHERE token = ? AND type = 'verify' AND expires_at > ?"
+  ).bind(token, now).first();
+
+  if (!row) return json({ error: 'Invalid or expired verification link.' }, 400);
+
+  await env.DB.prepare('UPDATE users SET verified = 1 WHERE id = ?').bind(row.user_id).run();
+  await env.DB.prepare('DELETE FROM email_tokens WHERE token = ?').bind(token).run();
+  return json({ ok: true });
+}
+
+async function resendVerification(request, env) {
+  const { user } = await requireSession(request, env);
+  if (user.verified) return json({ error: 'Email already verified' }, 400);
+  await sendVerificationEmailTo(user.id, user.email, env);
+  return json({ ok: true });
 }
 
 async function login(request, env) {
@@ -91,6 +119,52 @@ async function logout(request, env) {
 async function me(request, env) {
   const { user } = await requireSession(request, env);
   return json({ user });
+}
+
+// ── Email helpers ─────────────────────────────────────────────────────────────
+
+async function sendVerificationEmailTo(userId, email, env) {
+  // Delete any existing verify tokens for this user
+  await env.DB.prepare(
+    "DELETE FROM email_tokens WHERE user_id = ? AND type = 'verify'"
+  ).bind(userId).run();
+
+  const token     = genToken();
+  const expiresAt = Math.floor(Date.now() / 1000) + 24 * 3600; // 24 hours
+  await env.DB.prepare(
+    "INSERT INTO email_tokens (token, user_id, type, expires_at) VALUES (?, ?, 'verify', ?)"
+  ).bind(token, userId, expiresAt).run();
+
+  const verifyUrl = `https://kuruczp.github.io/ai-fact-checker/dashboard.html?verify=${token}`;
+  const from      = env.FROM_EMAIL || 'onboarding@resend.dev';
+
+  await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from,
+      to:      email,
+      subject: 'Verify your email — AI Fact Checker',
+      html: `
+        <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+          <h2 style="color:#1a1a2e;margin-bottom:12px">Verify your email</h2>
+          <p style="color:#444;line-height:1.6;margin-bottom:24px">
+            Thanks for signing up for AI Fact Checker. Click the button below to verify your email address.
+            This link expires in 24 hours.
+          </p>
+          <a href="${verifyUrl}" style="display:inline-block;background:#5c6bc0;color:white;padding:12px 28px;border-radius:8px;font-weight:600;text-decoration:none;font-size:15px">
+            Verify email
+          </a>
+          <p style="color:#888;font-size:12px;margin-top:24px">
+            If you didn't create an account, you can ignore this email.
+          </p>
+        </div>
+      `,
+    }),
+  });
 }
 
 // ── Key management ────────────────────────────────────────────────────────────
@@ -333,7 +407,7 @@ async function requireSession(request, env) {
   if (!token) { const e = new Error('Authentication required'); e.status = 401; throw e; }
   const session = await getSession(token, env);
   if (!session) { const e = new Error('Session expired'); e.status = 401; throw e; }
-  const user = await env.DB.prepare('SELECT id, email FROM users WHERE id = ?').bind(session.user_id).first();
+  const user = await env.DB.prepare('SELECT id, email, verified FROM users WHERE id = ?').bind(session.user_id).first();
   if (!user) { const e = new Error('User not found'); e.status = 401; throw e; }
   return { user };
 }
