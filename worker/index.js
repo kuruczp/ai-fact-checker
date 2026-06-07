@@ -1,12 +1,13 @@
 // AI Fact Checker — Cloudflare Worker
 // Auth + encrypted key storage + AI proxy
 
-const EXTENSION_TOKEN  = 'fc-ext-v1-a9k2m7';
-const SESSION_DAYS     = 30;
+const EXTENSION_TOKEN   = 'fc-ext-v1-a9k2m7';
+const SESSION_DAYS      = 30;
 const BM_TOKEN_MIN_DAYS = 1;
 const BM_TOKEN_MAX_DAYS = 365;
-const PROVIDERS        = ['anthropic', 'openai', 'openrouter'];
-const AUTH_SOURCES     = ['extension', 'bookmarklet', 'userscript'];
+const RATE_LIMIT_RPM    = 20; // max requests per IP per minute on /check
+const PROVIDERS         = ['anthropic', 'openai', 'openrouter'];
+const AUTH_SOURCES      = ['extension', 'bookmarklet', 'userscript'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -192,11 +193,36 @@ async function revokeBmToken(request, env) {
   return json({ ok: true });
 }
 
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+
+async function checkRateLimit(request, env) {
+  const ip     = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const minute = Math.floor(Date.now() / 60000);
+
+  await env.DB.prepare(`
+    INSERT INTO rate_limits (ip, minute, count) VALUES (?, ?, 1)
+    ON CONFLICT (ip, minute) DO UPDATE SET count = count + 1
+  `).bind(ip, minute).run();
+
+  const row = await env.DB.prepare(
+    'SELECT count FROM rate_limits WHERE ip = ? AND minute = ?'
+  ).bind(ip, minute).first();
+
+  // Clean up entries older than 2 minutes (fire and forget)
+  env.DB.prepare('DELETE FROM rate_limits WHERE minute < ?').bind(minute - 1).run();
+
+  return (row?.count ?? 0) > RATE_LIMIT_RPM;
+}
+
 // ── Check handler ─────────────────────────────────────────────────────────────
 
 async function check(request, env) {
   if (request.headers.get('X-Extension-Token') !== EXTENSION_TOKEN) {
     return json({ error: 'Unauthorized' }, 401);
+  }
+
+  if (await checkRateLimit(request, env)) {
+    return json({ error: 'Too many requests — please wait a moment.' }, 429);
   }
 
   const body   = await request.json().catch(() => ({}));
