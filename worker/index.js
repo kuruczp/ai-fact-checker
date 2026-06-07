@@ -64,11 +64,16 @@ async function register(request, env) {
     'INSERT INTO users (id, email, password_hash, password_salt, verified) VALUES (?, ?, ?, ?, 0)'
   ).bind(id, email.toLowerCase(), hash, salt).run();
 
-  // Send verification email (non-blocking — registration succeeds even if email fails)
-  sendVerificationEmailTo(id, email.toLowerCase(), env).catch(() => {});
+  // Send verification email — surface any errors so they're visible
+  let emailError = null;
+  try {
+    await sendVerificationEmailTo(id, email.toLowerCase(), env);
+  } catch (e) {
+    emailError = e.message;
+  }
 
   const token = await createSession(id, env);
-  return json({ token, user: { id, email: email.toLowerCase(), verified: false } });
+  return json({ token, user: { id, email: email.toLowerCase(), verified: false }, emailError });
 }
 
 async function verifyEmail(request, env) {
@@ -138,7 +143,7 @@ async function sendVerificationEmailTo(userId, email, env) {
   const verifyUrl = `https://kuruczp.github.io/ai-fact-checker/dashboard.html?verify=${token}`;
   const from      = env.FROM_EMAIL || 'onboarding@resend.dev';
 
-  await fetch('https://api.resend.com/emails', {
+  const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${env.RESEND_API_KEY}`,
@@ -165,6 +170,10 @@ async function sendVerificationEmailTo(userId, email, env) {
       `,
     }),
   });
+  if (!emailRes.ok) {
+    const err = await emailRes.json().catch(() => ({}));
+    throw new Error(`Resend error ${emailRes.status}: ${err.message || JSON.stringify(err)}`);
+  }
 }
 
 // ── Key management ────────────────────────────────────────────────────────────
